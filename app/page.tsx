@@ -1,7 +1,11 @@
-import Image from "next/image";
+// app/page.jsx
+import Header from "./(public)/_components/Header";
 
 export default function Home() {
   return (
-    <div>Home</div>
+    <div>
+      <Header />
+        <div>Home</div>
+    </div>
   );
 }
