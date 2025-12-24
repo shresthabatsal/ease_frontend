@@ -14,7 +14,7 @@ export default function Header() {
         </Link>
       </div>
 
-      {/* Right: Login & Signup */}
+      {/* Right: Login and Signup */}
       <div className="flex gap-4">
         <Link href="/login">
           <button className="px-4 py-1 border-1 border-[#F6B60D] bg-[#F6B60D] text-black rounded box-border hover:bg-yellow-500">
