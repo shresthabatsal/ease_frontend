@@ -99,6 +99,21 @@ export default function RegisterForm() {
           Log in
         </span>
       </p>
+
+      {/* Divider */}
+      <div className="flex items-center gap-2">
+        <hr className="flex-1 border-black" />
+        <span className="text-black text-sm">or</span>
+        <hr className="flex-1 border-black" />
+      </div>
+
+      {/* Continue with Google */}
+      <button
+        type="button"
+        className="w-full px-4 py-3 bg-white text-black border border-black rounded hover:bg-gray-100 transition flex justify-center items-center gap-2"
+      >
+        Continue with Google
+      </button>
     </form>
   );
 }

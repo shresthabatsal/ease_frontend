@@ -75,7 +75,7 @@ export default function LoginForm() {
         Don't have an account?{" "}
         <span
           className="underline cursor-pointer hover:text-yellow-500"
-          onClick={() => router.push("/signup")}
+          onClick={() => router.push("/register")}
         >
           Create one
         </span>
