@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginInput } from "../schema";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import Button from "@/components/ui/Button";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -72,13 +73,9 @@ export default function LoginForm() {
       </div>
 
       {/* Login Button */}
-      <button
-        type="submit"
-        disabled={isSubmitting || pending}
-        className="w-full px-4 py-3 bg-yellow-500 text-black font-medium rounded hover:bg-yellow-600 transition disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" disabled={isSubmitting || pending}>
         {isSubmitting || pending ? "Logging in..." : "Login"}
-      </button>
+      </Button>
 
       {/* Signup Link */}
       <p className="text-center text-sm text-black">
@@ -99,12 +96,9 @@ export default function LoginForm() {
       </div>
 
       {/* Continue with Google */}
-      <button
-        type="button"
-        className="w-full px-4 py-3 bg-white text-black border border-black rounded hover:bg-gray-100 transition flex justify-center items-center gap-2"
-      >
+      <Button type="button" variant="google">
         Continue with Google
-      </button>
+      </Button>
     </form>
   );
 }
