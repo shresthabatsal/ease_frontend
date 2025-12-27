@@ -4,20 +4,29 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginInput } from "../schema";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 export default function LoginForm() {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: LoginInput) => {
+  const onSubmit = async (data: LoginInput) => {
     console.log("Login data:", data);
+
+    startTransition(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      alert("Login successful!");
+      router.push("/dashboard");
+    });
   };
 
   return (
@@ -65,9 +74,10 @@ export default function LoginForm() {
       {/* Login Button */}
       <button
         type="submit"
-        className="w-full px-4 py-3 bg-yellow-500 text-black font-medium rounded hover:bg-yellow-600 transition"
+        disabled={isSubmitting || pending}
+        className="w-full px-4 py-3 bg-yellow-500 text-black font-medium rounded hover:bg-yellow-600 transition disabled:opacity-60"
       >
-        Login
+        {isSubmitting || pending ? "Logging in..." : "Login"}
       </button>
 
       {/* Signup Link */}

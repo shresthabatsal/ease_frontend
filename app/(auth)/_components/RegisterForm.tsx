@@ -4,20 +4,29 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterInput } from "../schema";
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
   });
 
-  const onSubmit = (data: RegisterInput) => {
+  const onSubmit = async (data: RegisterInput) => {
     console.log("Register data:", data);
+
+    startTransition(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      alert("Account created successfully!");
+      router.push("/login");
+    });
   };
 
   return (
@@ -84,9 +93,10 @@ export default function RegisterForm() {
       {/* Sign Up Button */}
       <button
         type="submit"
-        className="w-full px-4 py-3 bg-yellow-500 text-black font-medium rounded hover:bg-yellow-600 transition"
+        disabled={isSubmitting || pending}
+        className="w-full px-4 py-3 bg-yellow-500 text-black font-medium rounded hover:bg-yellow-600 transition disabled:opacity-60"
       >
-        Sign Up
+        {isSubmitting || pending ? "Creating account..." : "Sign Up"}
       </button>
 
       {/* Login Link */}
