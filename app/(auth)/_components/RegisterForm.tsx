@@ -5,6 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterInput } from "../schema";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -31,46 +33,26 @@ export default function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-96">
-      {/* Email */}
-      <div>
-        <input
-          type="email"
-          placeholder="Email"
-          {...register("email")}
-          className="w-full border border-black text-black px-4 py-3 rounded placeholder-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-        {errors.email && (
-          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-        )}
-      </div>
+      <TextField
+        type="email"
+        placeholder="Email"
+        {...register("email")}
+        error={errors.email?.message}
+      />
 
-      {/* Password */}
-      <div>
-        <input
-          type="password"
-          placeholder="Password"
-          {...register("password")}
-          className="w-full border border-black text-black px-4 py-3 rounded placeholder-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-        {errors.password && (
-          <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-        )}
-      </div>
+      <TextField
+        type="password"
+        placeholder="Password"
+        {...register("password")}
+        error={errors.password?.message}
+      />
 
-      {/* Confirm Password */}
-      <div>
-        <input
-          type="password"
-          placeholder="Confirm Password"
-          {...register("confirmPassword")}
-          className="w-full border border-black text-black px-4 py-3 rounded placeholder-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-        {errors.confirmPassword && (
-          <p className="text-red-500 text-sm mt-1">
-            {errors.confirmPassword.message}
-          </p>
-        )}
-      </div>
+      <TextField
+        type="password"
+        placeholder="Confirm Password"
+        {...register("confirmPassword")}
+        error={errors.confirmPassword?.message}
+      />
 
       {/* Terms & Conditions */}
       <div className="flex items-start gap-2 text-sm text-black">
@@ -91,13 +73,9 @@ export default function RegisterForm() {
       )}
 
       {/* Sign Up Button */}
-      <button
-        type="submit"
-        disabled={isSubmitting || pending}
-        className="w-full px-4 py-3 bg-yellow-500 text-black font-medium rounded hover:bg-yellow-600 transition disabled:opacity-60"
-      >
+      <Button type="submit" variant="primary" disabled={isSubmitting || pending}>
         {isSubmitting || pending ? "Creating account..." : "Sign Up"}
-      </button>
+      </Button>
 
       {/* Login Link */}
       <p className="text-center text-sm text-black">
@@ -118,12 +96,9 @@ export default function RegisterForm() {
       </div>
 
       {/* Continue with Google */}
-      <button
-        type="button"
-        className="w-full px-4 py-3 bg-white text-black border border-black rounded hover:bg-gray-100 transition flex justify-center items-center gap-2"
-      >
+      <Button type="button" variant="google">
         Continue with Google
-      </button>
+      </Button>
     </form>
   );
 }

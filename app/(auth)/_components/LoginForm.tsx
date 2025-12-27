@@ -6,6 +6,7 @@ import { loginSchema, LoginInput } from "../schema";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import Button from "@/components/ui/Button";
+import TextField from "@/components/ui/TextField";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -33,30 +34,20 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-96">
       {/* Email Field */}
-      <div className="relative">
-        <input
-          type="email"
-          placeholder="Email"
-          {...register("email")}
-          className="w-full border border-black text-black px-4 py-3 rounded placeholder-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-        {errors.email && (
-          <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-        )}
-      </div>
+      <TextField
+        type="email"
+        placeholder="Email"
+        {...register("email")}
+        error={errors.email?.message}
+      />
 
       {/* Password Field */}
-      <div className="relative">
-        <input
-          type="password"
-          placeholder="Password"
-          {...register("password")}
-          className="w-full border border-black text-black px-4 py-3 rounded placeholder-black focus:outline-none focus:ring-2 focus:ring-yellow-500"
-        />
-        {errors.password && (
-          <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
-        )}
-      </div>
+      <TextField
+        type="password"
+        placeholder="Password"
+        {...register("password")}
+        error={errors.password?.message}
+      />
 
       {/* Remember Me and Forgot Password */}
       <div className="flex justify-between items-center text-sm">
