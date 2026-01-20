@@ -2,6 +2,8 @@
 
 import { login, register } from "@/lib/api/auth";
 import { LoginInput, RegisterInput } from "@/app/(auth)/schema";
+import { setAuthToken, setUserData, clearAuthCookies } from "@/lib/cookie";
+import { redirect } from "next/navigation";
 
 export const handleRegister = async (data: RegisterInput) => {
   try {
@@ -32,6 +34,10 @@ export const handleLogin = async (data: LoginInput) => {
     const response = await login(data);
 
     if (response.success) {
+      // save auth data in cookies
+      await setAuthToken(response.token);
+      await setUserData(response.data);
+
       return {
         success: true,
         message: "Login successful",
@@ -44,6 +50,14 @@ export const handleLogin = async (data: LoginInput) => {
       message: response.message || "Login failed",
     };
   } catch (error: Error | any) {
-    return { success: false, message: error.message || "Login action failed" };
+    return {
+      success: false,
+      message: error.message || "Login action failed",
+    };
   }
+};
+
+export const handleLogout = async () => {
+  await clearAuthCookies();
+  redirect("/login");
 };
