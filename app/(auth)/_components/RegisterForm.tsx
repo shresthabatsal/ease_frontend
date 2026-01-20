@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import Button from "@/components/ui/Button";
 import TextField from "@/components/ui/TextField";
+import { handleRegister } from "@/lib/actions/auth-action";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -21,18 +22,38 @@ export default function RegisterForm() {
   });
 
   const onSubmit = async (data: RegisterInput) => {
-    console.log("Register data:", data);
-
     startTransition(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      alert("Account created successfully!");
-      router.push("/login");
+      const result = await handleRegister(data);
+  
+      if (result.success) {
+        alert("Account created successfully!");
+        router.push("/login");
+      } else {
+        alert(result.message);
+      }
     });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-96">
+
+      {/* Full Name Field */}
+      <TextField
+        type="text"
+        placeholder="Full Name"
+        {...register("fullName")}
+        error={errors.fullName?.message}
+      />
+
+      {/* Phone Number Field */}
+      <TextField
+        type="tel"
+        placeholder="Phone Number"
+        {...register("phoneNumber")}
+        error={errors.phoneNumber?.message}
+      />
+
+      {/* Email Field */}
       <TextField
         type="email"
         placeholder="Email"
@@ -40,6 +61,7 @@ export default function RegisterForm() {
         error={errors.email?.message}
       />
 
+      {/* Password Field */}
       <TextField
         type="password"
         placeholder="Password"
@@ -47,6 +69,7 @@ export default function RegisterForm() {
         error={errors.password?.message}
       />
 
+      {/* Confirm Password Field */}
       <TextField
         type="password"
         placeholder="Confirm Password"

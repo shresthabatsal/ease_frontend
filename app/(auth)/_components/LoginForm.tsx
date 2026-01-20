@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import Button from "@/components/ui/Button";
 import TextField from "@/components/ui/TextField";
+import { handleLogin } from "@/lib/actions/auth-action";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -21,15 +22,17 @@ export default function LoginForm() {
   });
 
   const onSubmit = async (data: LoginInput) => {
-    console.log("Login data:", data);
-
     startTransition(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      alert("Login successful!");
-      router.push("/dashboard");
+      const result = await handleLogin(data);
+  
+      if (result.success) {
+        alert("Login successful!");
+        router.push("/dashboard");
+      } else {
+        alert(result.message);
+      }
     });
-  };
+  };  
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-96">
