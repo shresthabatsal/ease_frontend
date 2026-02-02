@@ -1,23 +1,21 @@
-"use client";
-import { getUsers } from "@/lib/api/admin/user";
-import { useEffect, useState } from "react";
+import { handleGetUsers } from "@/lib/actions/admin/user-action";
 
-export default function AdminUsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
+export default async function AdminUsersPage() {
+  const res = await handleGetUsers();
 
-  useEffect(() => {
-    getUsers()
-      .then((res) => setUsers(res.data))
-      .catch(console.error);
-  }, []);
+  if (!res.success) {
+    return <p>Failed to load users</p>;
+  }
+
+  const users = res.data;
 
   return (
     <div>
       <h1>All Users</h1>
       <ul>
-        {users.map((u) => (
+        {users.map((u: any) => (
           <li key={u._id}>
-            {u.name} ({u.email})
+            {u.fullName} ({u.email})
           </li>
         ))}
       </ul>
