@@ -7,9 +7,16 @@ import { useState } from "react";
 import { LayoutDashboard, Users, Menu } from "lucide-react";
 import logo from "@/app/assets/images/ease_logo.png";
 
-export default function AdminSidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  setCollapsed: (val: boolean) => void;
+}
+
+export default function AdminSidebar({
+  collapsed,
+  setCollapsed,
+}: SidebarProps) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [hoverLogo, setHoverLogo] = useState(false);
 
   const isDashboardActive = pathname === "/admin";
@@ -39,29 +46,27 @@ export default function AdminSidebar() {
 
   return (
     <aside
-      className={`min-h-screen bg-white border-r transition-all duration-200 ${
+      className={`fixed top-0 left-0 h-screen bg-white border-r border-gray-300 transition-all duration-200 z-20 ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
       {/* Logo row */}
       <div
-        className={`p-4 ${
-          collapsed
-            ? "flex flex-col items-center"
-            : "flex flex-row justify-between items-center"
+        className={`p-4 flex flex-row items-center ${
+          collapsed ? "justify-center" : "justify-between"
         }`}
         onMouseEnter={() => setHoverLogo(true)}
         onMouseLeave={() => setHoverLogo(false)}
       >
-        {/* Logo */}
-        <div className="flex items-center gap-2">
+        {/* Logo / hover icon */}
+        <div className="flex items-center justify-center gap-2">
           <div
             className="flex items-center justify-center"
             style={{ width: 36, height: 36 }}
           >
             {collapsed && hoverLogo ? (
               <button onClick={() => setCollapsed(false)}>
-                <Menu color="black"/>
+                <Menu color="black" />
               </button>
             ) : (
               <Image
@@ -69,22 +74,25 @@ export default function AdminSidebar() {
                 alt="Ease Logo"
                 width={36}
                 height={36}
-                className="align-middle"
+                className="block"
               />
             )}
           </div>
 
           {!collapsed && (
-            <span className="font-bold text-lg text-black leading-none">
+            <span className="font-bold text-lg text-black leading-none flex items-center">
               Ease
             </span>
           )}
         </div>
 
-        {/* Icon */}
+        {/* Collapse icon in expanded mode */}
         {!collapsed && (
-          <button onClick={() => setCollapsed(true)}>
-            <Menu size={24} color="black"/>
+          <button
+            onClick={() => setCollapsed(true)}
+            className="flex items-center justify-center"
+          >
+            <Menu color="black" />
           </button>
         )}
       </div>
