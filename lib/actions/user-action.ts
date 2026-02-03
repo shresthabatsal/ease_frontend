@@ -15,8 +15,8 @@ export const handleGetProfile = async () => {
 
     return {
       success: true,
-      data: response,
-    };
+      data: response.data,
+    };  
   } catch (error: any) {
     return {
       success: false,
