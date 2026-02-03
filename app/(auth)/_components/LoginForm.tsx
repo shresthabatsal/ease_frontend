@@ -8,6 +8,7 @@ import { useTransition } from "react";
 import Button from "@/components/ui/Button";
 import TextField from "@/components/ui/TextField";
 import { handleLogin } from "@/lib/actions/auth-action";
+import { toast } from "react-toastify";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -26,10 +27,10 @@ export default function LoginForm() {
       const result = await handleLogin(data);
   
       if (result.success) {
-        alert("Login successful!");
+        toast.success("Login successful!");
         router.push("/dashboard");
       } else {
-        alert(result.message);
+        toast.error(result.message);
       }
     });
   };  

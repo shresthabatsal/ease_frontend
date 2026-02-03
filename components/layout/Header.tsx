@@ -59,7 +59,7 @@ export default function Header({ variant = "auth" }: HeaderProps) {
           </Link>
 
           {isAdmin && (
-            <Link href="/admin/users">
+            <Link href="/admin">
               <button className="px-3 py-1 border rounded hover:bg-gray-100 transition">
                 Admin Panel
               </button>
