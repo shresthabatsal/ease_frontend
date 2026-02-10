@@ -1,6 +1,9 @@
 "use client";
 
-import { handleGetUsers } from "@/lib/actions/admin/user-action";
+import {
+  handleGetUsers,
+  handleDeleteUser,
+} from "@/lib/actions/admin/user-action";
 import { useEffect, useState } from "react";
 import UsersTable from "../_components/UsersTable";
 import Loading from "../loading";
@@ -8,6 +11,8 @@ import NotFound from "../not-found";
 import ErrorComponent from "../error";
 import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
+import ConfirmDialog from "../_components/ConfirmDialog";
+import { toast, ToastContainer } from "react-toastify";
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -23,6 +28,15 @@ export default function AdminUsersPage() {
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+
+  // Delete dialog state
+  const [deleteDialog, setDeleteDialog] = useState<{
+    open: boolean;
+    userId?: string;
+  }>({
+    open: false,
+    userId: undefined,
+  });
 
   // Debounce search input
   useEffect(() => {
@@ -56,12 +70,40 @@ export default function AdminUsersPage() {
     fetchUsers();
   }, [page, search]);
 
+  // Reset password handler
   const handleResetPassword = (userId: string) => {
     alert(`Reset password for user ${userId}`);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    alert(`Delete user ${userId}`);
+  // Open delete dialog
+  const handleDeleteUserDialog = (userId: string) => {
+    setDeleteDialog({ open: true, userId });
+  };
+
+  // Confirm delete
+  const confirmDeleteUser = async () => {
+    if (!deleteDialog.userId) return;
+
+    setLoading(true);
+    try {
+      const res = await handleDeleteUser(deleteDialog.userId);
+      if (res.success) {
+        toast.success("User deleted successfully!");
+        // Refetch users after delete
+        const refreshed = await handleGetUsers({ page, size, search });
+        if (refreshed.success) {
+          setUsers(refreshed.data || []);
+          setTotalPages(refreshed.pagination?.totalPages || 1);
+        }
+      } else {
+        setError(res.message || "Failed to delete user");
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+      setDeleteDialog({ open: false, userId: undefined });
+    }
   };
 
   if (loading) return <Loading />;
@@ -77,9 +119,7 @@ export default function AdminUsersPage() {
   return (
     <div className="p-6">
       {/* Title */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold">Users</h1>
-      </div>
+      <h1 className="text-2xl font-bold mb-4">Users</h1>
 
       {/* Search + Create Button */}
       <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
@@ -105,7 +145,7 @@ export default function AdminUsersPage() {
         <UsersTable
           users={users}
           onResetPassword={handleResetPassword}
-          onDeleteUser={handleDeleteUser}
+          onDeleteUser={handleDeleteUserDialog}
         />
       ) : (
         <NotFound />
@@ -134,6 +174,15 @@ export default function AdminUsersPage() {
             Next
           </button>
         </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {deleteDialog.open && (
+        <ConfirmDialog
+          message="Are you sure you want to delete this user? This action cannot be undone."
+          onCancel={() => setDeleteDialog({ open: false, userId: undefined })}
+          onConfirm={confirmDeleteUser}
+        />
       )}
     </div>
   );
