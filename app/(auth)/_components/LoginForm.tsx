@@ -25,7 +25,7 @@ export default function LoginForm() {
   const onSubmit = async (data: LoginInput) => {
     startTransition(async () => {
       const result = await handleLogin(data);
-  
+
       if (result.success) {
         toast.success("Login successful!");
         router.push("/dashboard");
@@ -33,10 +33,13 @@ export default function LoginForm() {
         toast.error(result.message);
       }
     });
-  };  
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-96">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-4 w-96"
+    >
       {/* Email Field */}
       <TextField
         type="email"
@@ -62,13 +65,18 @@ export default function LoginForm() {
         <button
           type="button"
           className="text-black underline hover:text-yellow-500"
+          onClick={() => router.push("/forgot-password")}
         >
           Forgot password?
         </button>
       </div>
 
       {/* Login Button */}
-      <Button type="submit" variant="primary" disabled={isSubmitting || pending}>
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={isSubmitting || pending}
+      >
         {isSubmitting || pending ? "Logging in..." : "Login"}
       </Button>
 

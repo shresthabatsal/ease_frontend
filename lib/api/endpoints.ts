@@ -6,6 +6,8 @@ export const API = {
     UPDATE_PROFILE: "/api/auth/update-profile",
     UPLOAD_PROFILE_PIC: "/api/auth/upload-profile-picture",
     DELETE_ACCOUNT: "/api/auth/delete-account",
+    REQUEST_PASSWORD_RESET: "/api/auth/request-password-reset",
+    RESET_PASSWORD: "/api/auth/reset-password",   
   },
   ADMIN: {
     USERS: {
