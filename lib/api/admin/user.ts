@@ -2,8 +2,18 @@ import axios from "../axios";
 import { API } from "../endpoints";
 
 // Get all users
-export const getUsers = async () => {
-  const res = await axios.get(API.ADMIN.USERS.GET_ALL);
+export const getUsers = async (params?: {
+  page?: number;
+  size?: number;
+  search?: string;
+}) => {
+  const query = new URLSearchParams({
+    page: (params?.page ?? 1).toString(),
+    size: (params?.size ?? 10).toString(),
+    search: params?.search ?? "",
+  }).toString();
+
+  const res = await axios.get(`${API.ADMIN.USERS.GET_ALL}?${query}`);
   return res.data;
 };
 
