@@ -17,11 +17,7 @@ interface UsersTableProps {
   onDeleteUser: (userId: string) => void;
 }
 
-export default function UsersTable({
-  users,
-  onResetPassword,
-  onDeleteUser,
-}: UsersTableProps) {
+export default function UsersTable({ users, onDeleteUser }: UsersTableProps) {
   const router = useRouter();
 
   return (
@@ -32,11 +28,11 @@ export default function UsersTable({
             <th className="px-3 py-2 text-left">Full Name</th>
             <th className="px-3 py-2 text-left">Email</th>
             <th className="px-3 py-2 text-left">Phone</th>
-            <th className="px-3 py-2 text-left">Password</th>
             <th className="px-3 py-2 text-left">Role</th>
             <th className="px-3 py-2 text-left">Actions</th>
           </tr>
         </thead>
+
         <tbody>
           {users.map((u) => (
             <tr
@@ -44,45 +40,16 @@ export default function UsersTable({
               onClick={() => router.push(`/admin/users/${u._id}`)}
               className="border-t border-gray-300 hover:bg-gray-50 cursor-pointer"
             >
-              {/* Full Name */}
-              <td className="px-3 py-2 truncate" title={u.fullName}>
-                {u.fullName}
-              </td>
+              <td className="px-3 py-2 truncate">{u.fullName}</td>
+              <td className="px-3 py-2 truncate">{u.email}</td>
+              <td className="px-3 py-2 truncate">{u.phoneNumber}</td>
+              <td className="px-3 py-2 truncate">{u.role}</td>
 
-              {/* Email */}
-              <td className="px-3 py-2 truncate" title={u.email}>
-                {u.email}
-              </td>
-
-              {/* Phone */}
-              <td className="px-3 py-2 truncate" title={u.phoneNumber}>
-                {u.phoneNumber}
-              </td>
-
-              {/* Reset Password */}
-              <td className="px-3 py-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onResetPassword(u._id);
-                  }}
-                  className="px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs hover:bg-gray-300"
-                >
-                  Reset
-                </button>
-              </td>
-
-              {/* Role */}
-              <td className="px-3 py-2 truncate" title={u.role}>
-                {u.role}
-              </td>
-
-              {/* Actions */}
               <td className="px-3 py-2 flex gap-2">
                 <Link
                   href={`/admin/users/${u._id}/edit`}
                   onClick={(e) => e.stopPropagation()}
-                  className="px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs hover:bg-gray-300 truncate"
+                  className="px-2 py-1 bg-gray-200 rounded text-xs hover:bg-gray-300"
                 >
                   Edit
                 </Link>
@@ -92,7 +59,7 @@ export default function UsersTable({
                     e.stopPropagation();
                     onDeleteUser(u._id);
                   }}
-                  className="px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs hover:bg-gray-300 truncate"
+                  className="px-2 py-1 bg-gray-200 rounded text-xs hover:bg-gray-300"
                 >
                   Delete
                 </button>

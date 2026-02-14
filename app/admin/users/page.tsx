@@ -12,24 +12,25 @@ import ErrorComponent from "../error";
 import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ConfirmDialog from "../_components/ConfirmDialog";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 
 export default function AdminUsersPage() {
   const router = useRouter();
 
-  // Users state and pagination
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
-  const size = 20; // fixed page size
+  const size = 20;
   const [totalPages, setTotalPages] = useState(1);
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
 
-  // Delete dialog state
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   const [deleteDialog, setDeleteDialog] = useState<{
     open: boolean;
     userId?: string;
@@ -38,23 +39,31 @@ export default function AdminUsersPage() {
     userId: undefined,
   });
 
-  // Debounce search input
+  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearch(searchInput);
-      setPage(1); // reset to first page on new search
-    }, 500); // 500ms debounce
+      setPage(1);
+    }, 500);
 
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // Fetch users whenever page or search changes
+  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
       setError(null);
+
       try {
-        const res = await handleGetUsers({ page, size, search });
+        const res = await handleGetUsers({
+          page,
+          size,
+          search,
+          sortBy,
+          sortOrder,
+        });
+
         if (res.success) {
           setUsers(res.data || []);
           setTotalPages(res.pagination?.totalPages || 1);
@@ -67,8 +76,9 @@ export default function AdminUsersPage() {
         setLoading(false);
       }
     };
+
     fetchUsers();
-  }, [page, search]);
+  }, [page, search, sortBy, sortOrder]);
 
   // Reset password handler
   const handleResetPassword = (userId: string) => {
@@ -87,10 +97,18 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const res = await handleDeleteUser(deleteDialog.userId);
+
       if (res.success) {
         toast.success("User deleted successfully!");
-        // Refetch users after delete
-        const refreshed = await handleGetUsers({ page, size, search });
+
+        const refreshed = await handleGetUsers({
+          page,
+          size,
+          search,
+          sortBy,
+          sortOrder,
+        });
+
         if (refreshed.success) {
           setUsers(refreshed.data || []);
           setTotalPages(refreshed.pagination?.totalPages || 1);
@@ -121,8 +139,9 @@ export default function AdminUsersPage() {
       {/* Title */}
       <h1 className="text-2xl font-bold mb-4">Users</h1>
 
-      {/* Search + Create Button */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 mb-4">
+      {/* Search + Sort + Create */}
+      <div className="flex flex-col sm:flex-row items-center gap-4 mb-4 w-full">
+        {/* Search */}
         <input
           type="text"
           placeholder="Search users..."
@@ -131,6 +150,28 @@ export default function AdminUsersPage() {
           className="border px-3 py-2 rounded flex-grow min-w-[200px]"
         />
 
+        {/* Sort Dropdown */}
+        <select
+          value={`${sortBy}-${sortOrder}`}
+          onChange={(e) => {
+            const [field, order] = e.target.value.split("-");
+            setSortBy(field);
+            setSortOrder(order as "asc" | "desc");
+            setPage(1);
+          }}
+          className="border px-3 py-2 rounded min-w-[180px]"
+        >
+          <option value="createdAt-desc">Newest First</option>
+          <option value="createdAt-asc">Oldest First</option>
+          <option value="fullName-asc">Name A → Z</option>
+          <option value="fullName-desc">Name Z → A</option>
+          <option value="email-asc">Email A → Z</option>
+          <option value="email-desc">Email Z → A</option>
+          <option value="role-asc">Role A → Z</option>
+          <option value="role-desc">Role Z → A</option>
+        </select>
+
+        {/* Create Button */}
         <button
           onClick={() => router.push("/admin/users/create")}
           className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-black px-4 py-2 rounded font-medium"
@@ -179,7 +220,7 @@ export default function AdminUsersPage() {
       {/* Delete Confirmation Dialog */}
       {deleteDialog.open && (
         <ConfirmDialog
-          message="Are you sure you want to delete this user? This action cannot be undone."
+          message="Are you sure you want to delete this user?"
           onCancel={() => setDeleteDialog({ open: false, userId: undefined })}
           onConfirm={confirmDeleteUser}
         />

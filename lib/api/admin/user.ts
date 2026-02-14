@@ -6,11 +6,15 @@ export const getUsers = async (params?: {
   page?: number;
   size?: number;
   search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }) => {
   const query = new URLSearchParams({
     page: (params?.page ?? 1).toString(),
-    size: (params?.size ?? 10).toString(),
+    size: (params?.size ?? 20).toString(),
     search: params?.search ?? "",
+    sortBy: params?.sortBy ?? "fullName",
+    sortOrder: params?.sortOrder ?? "asc",
   }).toString();
 
   const res = await axios.get(`${API.ADMIN.USERS.GET_ALL}?${query}`);

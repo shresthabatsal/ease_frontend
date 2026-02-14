@@ -12,15 +12,25 @@ import { revalidatePath } from "next/cache";
 // Get all users
 export const handleGetUsers = async ({
   page = 1,
-  size = 10,
+  size = 20,
   search = "",
+  sortBy = "fullName",
+  sortOrder = "asc",
 }: {
   page?: number;
   size?: number;
   search?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 } = {}) => {
   try {
-    const response = await getUsers({ page, size, search });
+    const response = await getUsers({
+      page,
+      size,
+      search,
+      sortBy,
+      sortOrder,
+    });
 
     return {
       success: true,
