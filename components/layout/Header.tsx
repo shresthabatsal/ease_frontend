@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import logo from "@/app/assets/images/ease_logo.png";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "../ui/button";
 
 type HeaderProps = {
   variant?: "auth" | "app";
@@ -25,14 +26,17 @@ export default function Header({ variant = "auth" }: HeaderProps) {
           {!isAuthenticated && (
             <>
               <Link href="/login">
-                <button className="px-4 py-1 bg-[#F6B60D] text-black rounded hover:bg-yellow-500 transition">
+                <Button className="px-4 py-1 bg-[#F6B60D] text-black rounded hover:bg-yellow-500 transition">
                   Login
-                </button>
+                </Button>
               </Link>
               <Link href="/register">
-                <button className="px-4 py-1 border border-black text-black rounded hover:bg-gray-100 transition">
+                <Button
+                  variant="outline"
+                  className="px-4 py-1 border border-black text-black rounded hover:bg-gray-100 transition"
+                >
                   Signup
-                </button>
+                </Button>
               </Link>
             </>
           )}
@@ -40,12 +44,12 @@ export default function Header({ variant = "auth" }: HeaderProps) {
           {isAuthenticated && (
             <>
               <span className="font-medium">{user?.name}</span>
-              <button
+              <Button
                 onClick={logout}
                 className="px-4 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
               >
                 Logout
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -53,25 +57,25 @@ export default function Header({ variant = "auth" }: HeaderProps) {
         <div className="flex items-center gap-4">
           {/* App buttons */}
           <Link href="/user/profile">
-            <button className="px-3 py-1 border rounded hover:bg-gray-100 transition">
+            <Button className="px-3 py-1 border rounded hover:bg-gray-100 transition">
               Profile
-            </button>
+            </Button>
           </Link>
 
           {isAdmin && (
             <Link href="/admin">
-              <button className="px-3 py-1 border rounded hover:bg-gray-100 transition">
+              <Button className="px-3 py-1 border rounded hover:bg-gray-100 transition">
                 Admin Panel
-              </button>
+              </Button>
             </Link>
           )}
 
-          <button
+          <Button
             onClick={logout}
             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
           >
             Logout
-          </button>
+          </Button>
         </div>
       )}
     </header>

@@ -5,9 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { registerSchema, RegisterInput } from "../schema";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import Button from "@/components/ui/Button";
-import TextField from "@/components/ui/TextField";
 import { handleRegister } from "@/lib/actions/auth-action";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -24,7 +26,7 @@ export default function RegisterForm() {
   const onSubmit = async (data: RegisterInput) => {
     startTransition(async () => {
       const result = await handleRegister(data);
-  
+
       if (result.success) {
         alert("Account created successfully!");
         router.push("/login");
@@ -35,50 +37,84 @@ export default function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 w-96">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="flex flex-col gap-4 w-96"
+    >
+      {/* Full Name */}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="fullName">Full Name</Label>
+        <Input
+          id="fullName"
+          type="text"
+          placeholder="Enter your full name"
+          {...register("fullName")}
+        />
+        {errors.fullName && (
+          <p className="text-sm text-red-500">{errors.fullName.message}</p>
+        )}
+      </div>
 
-      {/* Full Name Field */}
-      <TextField
-        type="text"
-        placeholder="Full Name"
-        {...register("fullName")}
-        error={errors.fullName?.message}
-      />
+      {/* Phone Number */}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="phoneNumber">Phone Number</Label>
+        <Input
+          id="phoneNumber"
+          type="tel"
+          placeholder="Enter your phone number"
+          {...register("phoneNumber")}
+        />
+        {errors.phoneNumber && (
+          <p className="text-sm text-red-500">{errors.phoneNumber.message}</p>
+        )}
+      </div>
 
-      {/* Phone Number Field */}
-      <TextField
-        type="tel"
-        placeholder="Phone Number"
-        {...register("phoneNumber")}
-        error={errors.phoneNumber?.message}
-      />
+      {/* Email */}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="Enter your email"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
+        )}
+      </div>
 
-      {/* Email Field */}
-      <TextField
-        type="email"
-        placeholder="Email"
-        {...register("email")}
-        error={errors.email?.message}
-      />
+      {/* Password */}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="Create a password"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-red-500">{errors.password.message}</p>
+        )}
+      </div>
 
-      {/* Password Field */}
-      <TextField
-        type="password"
-        placeholder="Password"
-        {...register("password")}
-        error={errors.password?.message}
-      />
-
-      {/* Confirm Password Field */}
-      <TextField
-        type="password"
-        placeholder="Confirm Password"
-        {...register("confirmPassword")}
-        error={errors.confirmPassword?.message}
-      />
+      {/* Confirm Password */}
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="Confirm your password"
+          {...register("confirmPassword")}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-red-500">
+            {errors.confirmPassword.message}
+          </p>
+        )}
+      </div>
 
       {/* Terms & Conditions */}
-      <div className="flex items-start gap-2 text-sm text-black">
+      <div className="flex items-start gap-2 text-sm">
         <input
           type="checkbox"
           {...register("terms")}
@@ -92,16 +128,16 @@ export default function RegisterForm() {
         </span>
       </div>
       {errors.terms && (
-        <p className="text-red-500 text-sm">{errors.terms.message}</p>
+        <p className="text-sm text-red-500">{errors.terms.message}</p>
       )}
 
-      {/* Sign Up Button */}
-      <Button type="submit" variant="primary" disabled={isSubmitting || pending}>
+      {/* Submit Button */}
+      <Button type="submit" disabled={isSubmitting || pending}>
         {isSubmitting || pending ? "Creating account..." : "Sign Up"}
       </Button>
 
       {/* Login Link */}
-      <p className="text-center text-sm text-black">
+      <p className="text-center text-sm">
         Already have an account?{" "}
         <span
           className="underline cursor-pointer hover:text-yellow-500"
@@ -113,13 +149,13 @@ export default function RegisterForm() {
 
       {/* Divider */}
       <div className="flex items-center gap-2">
-        <hr className="flex-1 border-black" />
-        <span className="text-black text-sm">or</span>
-        <hr className="flex-1 border-black" />
+        <hr className="flex-1" />
+        <span className="text-sm">or</span>
+        <hr className="flex-1" />
       </div>
 
-      {/* Continue with Google */}
-      <Button type="button" variant="google">
+      {/* Google Button */}
+      <Button type="button" variant="outline">
         Continue with Google
       </Button>
     </form>

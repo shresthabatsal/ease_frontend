@@ -5,13 +5,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { toast } from "react-toastify";
 
-import TextField from "@/components/ui/TextField";
-import SelectField from "@/components/ui/SelectField";
 import { handleCreateUser } from "@/lib/actions/admin/user-action";
 import {
   AdminCreateUserInput,
   adminCreateUserSchema,
 } from "../users/create/schema";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function CreateUserForm() {
   const [pending, startTransition] = useTransition();
@@ -20,6 +29,8 @@ export default function CreateUserForm() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<AdminCreateUserInput>({
     resolver: zodResolver(adminCreateUserSchema),
@@ -48,7 +59,7 @@ export default function CreateUserForm() {
       }
 
       toast.success(result?.message || "User created successfully");
-      reset(); // clear only on success
+      reset();
     });
   };
 
@@ -59,97 +70,133 @@ export default function CreateUserForm() {
     >
       {/* Full Name */}
       <div className="grid grid-cols-[150px_1fr] gap-4 items-center w-full">
-        <label className="text-[15px] font-medium text-black">Full Name</label>
-        <TextField
-          placeholder="Enter full name"
-          {...register("fullName")}
-          error={errors.fullName?.message}
-          className="w-full"
-        />
+        <Label htmlFor="fullName" className="text-[15px] font-medium">
+          Full Name
+        </Label>
+        <div>
+          <Input
+            id="fullName"
+            placeholder="Enter full name"
+            {...register("fullName")}
+          />
+          {errors.fullName && (
+            <p className="text-sm text-red-500 mt-1">
+              {errors.fullName.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Phone Number */}
       <div className="grid grid-cols-[150px_1fr] gap-4 items-center w-full">
-        <label className="text-[15px] font-medium text-black">
+        <Label htmlFor="phoneNumber" className="text-[15px] font-medium">
           Phone Number
-        </label>
-        <TextField
-          placeholder="Enter phone number"
-          {...register("phoneNumber")}
-          error={errors.phoneNumber?.message}
-          className="w-full"
-        />
+        </Label>
+        <div>
+          <Input
+            id="phoneNumber"
+            placeholder="Enter phone number"
+            {...register("phoneNumber")}
+          />
+          {errors.phoneNumber && (
+            <p className="text-sm text-red-500 mt-1">
+              {errors.phoneNumber.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Email */}
       <div className="grid grid-cols-[150px_1fr] gap-4 items-center w-full">
-        <label className="text-[15px] font-medium text-black">Email</label>
-        <TextField
-          type="email"
-          placeholder="Enter email"
-          {...register("email")}
-          error={errors.email?.message}
-          className="w-full"
-        />
+        <Label htmlFor="email" className="text-[15px] font-medium">
+          Email
+        </Label>
+        <div>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Enter email"
+            {...register("email")}
+          />
+          {errors.email && (
+            <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+          )}
+        </div>
       </div>
 
       {/* Role */}
       <div className="grid grid-cols-[150px_1fr] gap-4 items-center w-full">
-        <label className="text-[15px] font-medium text-black">Role</label>
-        <SelectField
-          {...register("role")}
-          options={[
-            { label: "USER", value: "USER" },
-            { label: "ADMIN", value: "ADMIN" },
-          ]}
-          error={errors.role?.message}
-          className="w-full"
-        />
+        <Label className="text-[15px] font-medium">Role</Label>
+        <div>
+          <Select
+            defaultValue={watch("role")}
+            onValueChange={(value) =>
+              setValue("role", value as "USER" | "ADMIN")
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USER">USER</SelectItem>
+              <SelectItem value="ADMIN">ADMIN</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.role && (
+            <p className="text-sm text-red-500 mt-1">{errors.role.message}</p>
+          )}
+        </div>
       </div>
 
       {/* Password */}
       <div className="grid grid-cols-[150px_1fr] gap-4 items-center w-full">
-        <label className="text-[15px] font-medium text-black">Password</label>
-        <TextField
-          type="password"
-          placeholder="Enter password"
-          {...register("password")}
-          error={errors.password?.message}
-          className="w-full"
-        />
+        <Label htmlFor="password" className="text-[15px] font-medium">
+          Password
+        </Label>
+        <div>
+          <Input
+            id="password"
+            type="password"
+            placeholder="Enter password"
+            {...register("password")}
+          />
+          {errors.password && (
+            <p className="text-sm text-red-500 mt-1">
+              {errors.password.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Confirm Password */}
       <div className="grid grid-cols-[150px_1fr] gap-4 items-center w-full">
-        <label className="text-[15px] font-medium text-black">
+        <Label htmlFor="confirmPassword" className="text-[15px] font-medium">
           Confirm Password
-        </label>
-        <TextField
-          type="password"
-          placeholder="Confirm password"
-          {...register("confirmPassword")}
-          error={errors.confirmPassword?.message}
-          className="w-full"
-        />
+        </Label>
+        <div>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="Confirm password"
+            {...register("confirmPassword")}
+          />
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-500 mt-1">
+              {errors.confirmPassword.message}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
       <div className="flex justify-end gap-4 pt-4">
-        <button
-          type="button"
-          onClick={() => reset()}
-          className="px-6 py-3 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50"
-        >
+        <Button type="button" variant="outline" onClick={() => reset()}>
           Clear
-        </button>
+        </Button>
 
-        <button
-          type="submit"
-          disabled={isSubmitting || pending}
-          className="bg-yellow-500 hover:bg-yellow-600 text-black px-6 py-3 rounded font-medium disabled:opacity-60"
-        >
+        <Button type="submit" disabled={isSubmitting || pending}>
           {isSubmitting || pending ? "Creating user..." : "Create User"}
-        </button>
+        </Button>
       </div>
     </form>
   );

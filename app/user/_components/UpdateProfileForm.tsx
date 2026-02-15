@@ -4,8 +4,10 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useTransition } from "react";
 import { handleUpdateProfile } from "@/lib/actions/user-action";
-import TextField from "@/components/ui/TextField";
-import Button from "@/components/ui/Button";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 interface UpdateProfileFormProps {
   user: {
@@ -50,9 +52,7 @@ export default function UpdateProfileForm({
 
         if (res?.success) {
           toast.success(res.message || "Profile updated successfully");
-          // Refresh profile data
           await onProfileUpdated();
-          // Reset form with the new values (optional but recommended)
           reset(data);
         } else {
           toast.error(res?.message || "Failed to update profile");
@@ -68,22 +68,27 @@ export default function UpdateProfileForm({
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Full Name */}
       <div className="space-y-2">
-        <TextField
-          label="Full Name"
+        <Label htmlFor="fullName">Full Name</Label>
+        <Input
+          id="fullName"
+          placeholder="Enter your full name"
           {...register("fullName", {
             required: "Full name is required",
             minLength: { value: 2, message: "Name is too short" },
           })}
-          error={errors.fullName?.message}
-          placeholder="Enter your full name"
         />
+        {errors.fullName && (
+          <p className="text-sm text-red-500">{errors.fullName.message}</p>
+        )}
       </div>
 
       {/* Email */}
       <div className="space-y-2">
-        <TextField
-          label="Email"
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
           type="email"
+          placeholder="Enter your email"
           {...register("email", {
             required: "Email is required",
             pattern: {
@@ -91,15 +96,18 @@ export default function UpdateProfileForm({
               message: "Invalid email address",
             },
           })}
-          error={errors.email?.message}
-          placeholder="Enter your email"
         />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
+        )}
       </div>
 
       {/* Phone Number */}
       <div className="space-y-2">
-        <TextField
-          label="Phone Number"
+        <Label htmlFor="phoneNumber">Phone Number</Label>
+        <Input
+          id="phoneNumber"
+          placeholder="Enter your phone number"
           {...register("phoneNumber", {
             required: "Phone number is required",
             pattern: {
@@ -107,18 +115,15 @@ export default function UpdateProfileForm({
               message: "Invalid phone number format",
             },
           })}
-          error={errors.phoneNumber?.message}
-          placeholder="Enter your phone number"
         />
+        {errors.phoneNumber && (
+          <p className="text-sm text-red-500">{errors.phoneNumber.message}</p>
+        )}
       </div>
 
       {/* Submit Button */}
       <div className="pt-4">
-        <Button
-          type="submit"
-          disabled={pending}
-          className={pending ? "opacity-70 cursor-not-allowed" : ""}
-        >
+        <Button type="submit" disabled={pending}>
           {pending ? "Updating Profile..." : "Update Profile"}
         </Button>
       </div>

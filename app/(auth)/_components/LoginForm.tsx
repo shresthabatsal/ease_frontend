@@ -5,10 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginInput } from "../schema";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import Button from "@/components/ui/Button";
-import TextField from "@/components/ui/TextField";
 import { handleLogin } from "@/lib/actions/auth-action";
 import { toast } from "react-toastify";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -41,30 +43,42 @@ export default function LoginForm() {
       className="flex flex-col gap-4 w-96"
     >
       {/* Email Field */}
-      <TextField
-        type="email"
-        placeholder="Email"
-        {...register("email")}
-        error={errors.email?.message}
-      />
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="email"
+          placeholder="Enter your email"
+          {...register("email")}
+        />
+        {errors.email && (
+          <p className="text-sm text-red-500">{errors.email.message}</p>
+        )}
+      </div>
 
       {/* Password Field */}
-      <TextField
-        type="password"
-        placeholder="Password"
-        {...register("password")}
-        error={errors.password?.message}
-      />
+      <div className="flex flex-col gap-1">
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          placeholder="Enter your password"
+          {...register("password")}
+        />
+        {errors.password && (
+          <p className="text-sm text-red-500">{errors.password.message}</p>
+        )}
+      </div>
 
-      {/* Remember Me and Forgot Password */}
+      {/* Remember Me & Forgot Password */}
       <div className="flex justify-between items-center text-sm">
-        <label className="flex items-center gap-2 text-black">
+        <label className="flex items-center gap-2">
           <input type="checkbox" className="w-4 h-4" />
           Remember me
         </label>
         <button
           type="button"
-          className="text-black underline hover:text-yellow-500"
+          className="underline hover:text-yellow-500"
           onClick={() => router.push("/forgot-password")}
         >
           Forgot password?
@@ -72,16 +86,12 @@ export default function LoginForm() {
       </div>
 
       {/* Login Button */}
-      <Button
-        type="submit"
-        variant="primary"
-        disabled={isSubmitting || pending}
-      >
+      <Button type="submit" disabled={isSubmitting || pending}>
         {isSubmitting || pending ? "Logging in..." : "Login"}
       </Button>
 
       {/* Signup Link */}
-      <p className="text-center text-sm text-black">
+      <p className="text-center text-sm">
         Don't have an account?{" "}
         <span
           className="underline cursor-pointer hover:text-yellow-500"
@@ -93,13 +103,13 @@ export default function LoginForm() {
 
       {/* Divider */}
       <div className="flex items-center gap-2">
-        <hr className="flex-1 border-black" />
-        <span className="text-black text-sm">or</span>
-        <hr className="flex-1 border-black" />
+        <hr className="flex-1" />
+        <span className="text-sm">or</span>
+        <hr className="flex-1" />
       </div>
 
       {/* Continue with Google */}
-      <Button type="button" variant="google">
+      <Button type="button" variant="outline">
         Continue with Google
       </Button>
     </form>

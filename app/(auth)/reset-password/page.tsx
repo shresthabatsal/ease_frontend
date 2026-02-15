@@ -3,10 +3,22 @@
 import { useForm } from "react-hook-form";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTransition } from "react";
-import Button from "@/components/ui/Button";
-import TextField from "@/components/ui/TextField";
 import { handleResetPassword } from "@/lib/actions/auth-action";
 import { toast, ToastContainer } from "react-toastify";
+import Image from "next/image";
+import logo from "@/app/assets/images/ease_logo.png";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 
 interface ResetPasswordForm {
   newPassword: string;
@@ -23,7 +35,6 @@ export default function ResetPasswordPage() {
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors },
   } = useForm<ResetPasswordForm>();
 
@@ -36,6 +47,7 @@ export default function ResetPasswordPage() {
 
     startTransition(async () => {
       const res = await handleResetPassword(token, data.newPassword);
+
       if (res.success) {
         toast.success(res.message);
         setTimeout(() => router.push("/login"), 3000);
@@ -46,46 +58,70 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div
-      className="bg-gray-100 p-14 rounded-lg flex flex-col items-center gap-4
-                    w-full max-w-[90%] sm:max-w-[400px] md:max-w-[500px] lg:max-w-[600px] xl:max-w-[700px]"
-    >
-      <h1 className="text-2xl font-bold text-black">Reset Password</h1>
-      <p className="text-black text-sm text-center">
-        Enter your new password below.
-      </p>
+    <div className="flex justify-center px-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="flex flex-col items-center text-center space-y-2">
+          <Image src={logo} alt="Logo" width={40} />
+          <CardTitle className="text-2xl">Reset Password</CardTitle>
+          <CardDescription>Enter your new password below.</CardDescription>
+        </CardHeader>
 
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col gap-4 w-96"
-      >
-        <TextField
-          type="password"
-          placeholder="New Password"
-          {...register("newPassword", { required: "New password is required" })}
-          error={errors.newPassword?.message}
-        />
+        <CardContent className="flex justify-center">
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="flex flex-col gap-4 w-96"
+          >
+            {/* New Password */}
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                placeholder="Enter new password"
+                {...register("newPassword", {
+                  required: "New password is required",
+                })}
+              />
+              {errors.newPassword && (
+                <p className="text-sm text-red-500">
+                  {errors.newPassword.message}
+                </p>
+              )}
+            </div>
 
-        <TextField
-          type="password"
-          placeholder="Confirm Password"
-          {...register("confirmPassword", {
-            required: "Confirm password is required",
-          })}
-          error={errors.confirmPassword?.message}
-        />
+            {/* Confirm Password */}
+            <div className="flex flex-col gap-1">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm new password"
+                {...register("confirmPassword", {
+                  required: "Confirm password is required",
+                })}
+              />
+              {errors.confirmPassword && (
+                <p className="text-sm text-red-500">
+                  {errors.confirmPassword.message}
+                </p>
+              )}
+            </div>
 
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Resetting..." : "Reset Password"}
-        </Button>
+            {/* Submit Button */}
+            <Button type="submit" disabled={pending}>
+              {pending ? "Resetting..." : "Reset Password"}
+            </Button>
 
-        <p
-          className="text-sm text-black text-center underline cursor-pointer"
-          onClick={() => router.push("/login")}
-        >
-          Back to login
-        </p>
-      </form>
+            {/* Back to Login */}
+            <p
+              className="text-sm text-center underline cursor-pointer"
+              onClick={() => router.push("/login")}
+            >
+              Back to login
+            </p>
+          </form>
+        </CardContent>
+      </Card>
 
       <ToastContainer position="top-right" autoClose={3000} />
     </div>

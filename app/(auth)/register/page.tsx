@@ -4,16 +4,32 @@ import RegisterForm from "../_components/RegisterForm";
 import Image from "next/image";
 import logo from "@/app/assets/images/ease_logo.png";
 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
+
 export default function Page() {
   return (
-    <div className="bg-gray-100 p-14 rounded-lg flex flex-col items-center gap-4
-                    w-[500px] max-w-full sm:w-[500px] md:w-[600px] lg:w-[700px] xl:w-[800px]">
-      <Image src={logo} alt="Logo" width={40} className="mb-2" />
-      <h1 className="text-2xl font-bold text-black">Get Started</h1>
-      <p className="text-black text-sm text-center">
-        Join now to start shopping with Ease.
-      </p>
-      <RegisterForm />
+    <div className="flex justify-center px-4">
+      <Card className="w-full max-w-2xl shadow-lg">
+        <CardHeader className="flex flex-col items-center text-center space-y-2">
+          <Image src={logo} alt="Logo" width={40} />
+          <CardTitle className="text-2xl">Get Started</CardTitle>
+          <CardDescription>
+            Join now to start shopping with Ease.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="flex justify-center">
+          <div className="w-full max-w-md">
+            <RegisterForm />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

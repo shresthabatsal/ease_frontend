@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { handleUploadProfilePicture } from "@/lib/actions/user-action";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 interface ProfilePictureDialogProps {
   user: { profilePictureUrl?: string };

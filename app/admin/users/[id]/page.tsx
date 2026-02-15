@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { handleGetUserById } from "@/lib/actions/admin/user-action";
 import Loading from "../../loading";
 import ErrorComponent from "../../error";
-import Button from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 export default function UserDetailsPage() {
   const { id } = useParams();
@@ -54,10 +54,7 @@ export default function UserDetailsPage() {
       </div>
 
       <div className="mt-6">
-        <Button
-          variant="primary"
-          onClick={() => router.push(`/admin/users/${id}/edit`)}
-        >
+        <Button onClick={() => router.push(`/admin/users/${id}/edit`)}>
           Edit User
         </Button>
       </div>
