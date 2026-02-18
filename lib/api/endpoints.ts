@@ -9,6 +9,7 @@ export const API = {
     REQUEST_PASSWORD_RESET: "/api/auth/request-password-reset",
     RESET_PASSWORD: "/api/auth/reset-password",
   },
+
   ADMIN: {
     USERS: {
       GET_ALL: "/api/admin/users",
@@ -17,6 +18,7 @@ export const API = {
       UPDATE: (id: string) => `/api/admin/users/${id}`,
       DELETE: (id: string) => `/api/admin/users/${id}`,
     },
+
     PRODUCTS: {
       GET_ALL: "/api/admin/products",
       GET_ONE: (productId: string) => `/api/admin/products/${productId}`,
@@ -25,16 +27,27 @@ export const API = {
       UPDATE: (productId: string) => `/api/admin/products/${productId}`,
       DELETE: (productId: string) => `/api/admin/products/${productId}`,
     },
+
     STORES: {
       GET_ALL: "/api/admin/stores",
     },
+
     CATEGORIES: {
       GET_ALL: "/api/admin/categories",
+      GET_ONE: (id: string) => `/api/admin/categories/${id}`,
+      CREATE: "/api/admin/categories",
+      UPDATE: (id: string) => `/api/admin/categories/${id}`,
+      DELETE: (id: string) => `/api/admin/categories/${id}`,
     },
+
     SUBCATEGORIES: {
       GET_ALL: "/api/admin/subcategories",
+      GET_ONE: (id: string) => `/api/admin/subcategories/${id}`,
       GET_BY_CATEGORY: (categoryId: string) =>
         `/api/admin/subcategories/category/${categoryId}`,
+      CREATE: "/api/admin/subcategories",
+      UPDATE: (id: string) => `/api/admin/subcategories/${id}`,
+      DELETE: (id: string) => `/api/admin/subcategories/${id}`,
     },
   },
 };
