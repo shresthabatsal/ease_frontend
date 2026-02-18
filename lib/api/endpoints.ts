@@ -7,7 +7,7 @@ export const API = {
     UPLOAD_PROFILE_PIC: "/api/auth/upload-profile-picture",
     DELETE_ACCOUNT: "/api/auth/delete-account",
     REQUEST_PASSWORD_RESET: "/api/auth/request-password-reset",
-    RESET_PASSWORD: "/api/auth/reset-password",   
+    RESET_PASSWORD: "/api/auth/reset-password",
   },
   ADMIN: {
     USERS: {
@@ -16,6 +16,25 @@ export const API = {
       CREATE: "/api/admin/users",
       UPDATE: (id: string) => `/api/admin/users/${id}`,
       DELETE: (id: string) => `/api/admin/users/${id}`,
+    },
+    PRODUCTS: {
+      GET_ALL: "/api/admin/products",
+      GET_ONE: (productId: string) => `/api/admin/products/${productId}`,
+      GET_BY_STORE: (storeId: string) => `/api/admin/products/store/${storeId}`,
+      CREATE: "/api/admin/products",
+      UPDATE: (productId: string) => `/api/admin/products/${productId}`,
+      DELETE: (productId: string) => `/api/admin/products/${productId}`,
+    },
+    STORES: {
+      GET_ALL: "/api/admin/stores",
+    },
+    CATEGORIES: {
+      GET_ALL: "/api/admin/categories",
+    },
+    SUBCATEGORIES: {
+      GET_ALL: "/api/admin/subcategories",
+      GET_BY_CATEGORY: (categoryId: string) =>
+        `/api/admin/subcategories/category/${categoryId}`,
     },
   },
 };

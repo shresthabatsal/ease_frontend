@@ -21,6 +21,7 @@ export default function AdminSidebar({
 
   const isDashboardActive = pathname === "/admin";
   const isUsersActive = pathname.startsWith("/admin/users");
+  const isProductsActive = pathname.startsWith("/admin/products");
 
   const navItems = [
     {
@@ -34,6 +35,12 @@ export default function AdminSidebar({
       icon: <Users size={20} />,
       href: "/admin/users",
       active: isUsersActive,
+    },
+    {
+      name: "Products",
+      icon: <Users size={20} />,
+      href: "/admin/products",
+      active: isProductsActive,
     },
   ];
 
