@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CategoryData } from "./ProductForm";
+import { CategoryData } from "../category/CategoryForm";
 
 export interface SubcategoryData {
   _id: string;

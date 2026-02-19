@@ -9,18 +9,18 @@ import {
   PaginationData,
   ProductData,
   StoreData,
-} from "../_components/ProductForm";
+} from "./_components/ProductForm";
 import {
   handleGetAllCategories,
   handleGetAllProducts,
   handleGetAllStores,
   handleGetProductsByStore,
 } from "@/lib/actions/admin/product-action";
-import { CreateProductDialog } from "../_components/CreateProductDialog";
-import { ProductsTable } from "../_components/ProductTable";
-import { ViewProductDialog } from "../_components/ViewProductDialog";
-import { EditProductDialog } from "../_components/EditProductDialog";
-import { DeleteProductDialog } from "../_components/DeleteProductDialog";
+import { CreateProductDialog } from "./_components/CreateProductDialog";
+import { ProductsTable } from "./_components/ProductTable";
+import { ViewProductDialog } from "./_components/ViewProductDialog";
+import { EditProductDialog } from "./_components/EditProductDialog";
+import { DeleteProductDialog } from "./_components/DeleteProductDialog";
 
 type DialogMode = "view" | "edit" | "delete" | null;
 

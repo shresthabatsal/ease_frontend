@@ -8,8 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { CategoryData, CategoryForm } from "./CategoryForm";
 import { handleUpdateCategory } from "@/lib/actions/admin/category-action";
+import { CategoryData, CategoryForm } from "./CategoryForm";
 
 interface EditCategoryDialogProps {
   category: CategoryData | null;

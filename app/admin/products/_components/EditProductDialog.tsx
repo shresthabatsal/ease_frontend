@@ -7,9 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ProductForm, ProductData } from "./ProductForm";
 import { toast } from "sonner";
 import { handleUpdateProduct } from "@/lib/actions/admin/product-action";
+import { ProductData, ProductForm } from "./ProductForm";
 
 interface EditProductDialogProps {
   product: ProductData | null;

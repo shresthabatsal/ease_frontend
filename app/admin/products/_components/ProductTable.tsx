@@ -35,12 +35,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import {
-  ProductData,
-  PaginationData,
-  StoreData,
-  CategoryData,
-} from "./ProductForm";
+import { CategoryData, PaginationData, ProductData, StoreData } from "./ProductForm";
 
 const IMAGE_BASE_URL = "http://localhost:5050";
 const PLACEHOLDER_IMAGE = "/placeholder-product.png";

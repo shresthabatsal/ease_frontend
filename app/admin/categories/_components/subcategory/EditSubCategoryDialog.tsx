@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { SubcategoryData, SubcategoryForm } from "./SubCategoryForm";
-import { CategoryData } from "./CategoryForm";
+import { CategoryData } from "../category/CategoryForm";
 import { handleUpdateSubcategory } from "@/lib/actions/admin/category-action";
 
 interface EditSubcategoryDialogProps {

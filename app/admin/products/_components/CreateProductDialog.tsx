@@ -9,9 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { ProductForm } from "./ProductForm";
 import { toast } from "sonner";
 import { handleCreateProduct } from "@/lib/actions/admin/product-action";
+import { ProductForm } from "./ProductForm";
 
 interface CreateProductDialogProps {
   onSuccess: () => void;

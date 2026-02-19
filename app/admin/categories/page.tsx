@@ -29,18 +29,18 @@ import {
   ArrowDown,
   X,
 } from "lucide-react";
-import { CategoryData } from "../_components/CategoryForm";
-import { SubcategoryData } from "../_components/SubCategoryForm";
+import { CategoryData } from "./_components/category/CategoryForm";
 import {
   handleGetAllCategories,
   handleGetAllSubcategories,
 } from "@/lib/actions/admin/category-action";
-import { CreateCategoryDialog } from "../_components/CreateCategoryDialog";
-import { CreateSubcategoryDialog } from "../_components/CreateSubCategoryDialog";
-import { EditCategoryDialog } from "../_components/EditCategoryDialog";
-import { DeleteCategoryDialog } from "../_components/DeleteCategoryDialog";
-import { EditSubcategoryDialog } from "../_components/EditSubCategoryDialog";
-import { DeleteSubcategoryDialog } from "../_components/DeleteSubCategoryDialog";
+import { CreateCategoryDialog } from "./_components/category/CreateCategoryDialog";
+import { DeleteCategoryDialog } from "./_components/category/DeleteCategoryDialog";
+import { EditSubcategoryDialog } from "./_components/subcategory/EditSubCategoryDialog";
+import { CreateSubcategoryDialog } from "./_components/subcategory/CreateSubCategoryDialog";
+import { SubcategoryData } from "./_components/subcategory/SubCategoryForm";
+import { EditCategoryDialog } from "./_components/category/EditCategoryDialog";
+import { DeleteSubcategoryDialog } from "./_components/subcategory/DeleteSubCategoryDialog";
 const IMAGE_BASE_URL = "http://localhost:5050";
 
 type CategoryDialog = "edit" | "delete" | null;

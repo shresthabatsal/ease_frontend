@@ -12,8 +12,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ProductData } from "./ProductForm";
 import { handleDeleteProduct } from "@/lib/actions/admin/product-action";
+import { ProductData } from "./ProductForm";
 
 interface DeleteProductDialogProps {
   product: ProductData | null;

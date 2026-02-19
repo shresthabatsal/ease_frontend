@@ -12,7 +12,7 @@ import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { SubcategoryForm } from "./SubCategoryForm";
 import { handleCreateSubcategory } from "@/lib/actions/admin/category-action";
-import { CategoryData } from "./CategoryForm";
+import { CategoryData } from "../category/CategoryForm";
 
 interface CreateSubcategoryDialogProps {
   categories: CategoryData[];
