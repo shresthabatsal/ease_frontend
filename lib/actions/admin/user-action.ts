@@ -38,9 +38,13 @@ export const handleGetUsers = async ({
       pagination: response.pagination,
     };
   } catch (error: any) {
+    console.error("Get users error:", error.response?.data || error.message);
     return {
       success: false,
-      message: error.message || "Failed to fetch users",
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch users",
     };
   }
 };
@@ -56,7 +60,10 @@ export const handleGetUserById = async (id: string) => {
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || "Failed to fetch user",
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to fetch user",
     };
   }
 };
@@ -64,6 +71,11 @@ export const handleGetUserById = async (id: string) => {
 // Create user
 export const handleCreateUser = async (formData: FormData) => {
   try {
+    console.log(
+      "Creating user with FormData keys:",
+      Array.from(formData.keys())
+    );
+
     const response = await createUser(formData);
 
     if (response.success) {
@@ -71,7 +83,7 @@ export const handleCreateUser = async (formData: FormData) => {
 
       return {
         success: true,
-        message: "User created successfully",
+        message: response.message || "User created successfully",
         data: response.data,
       };
     }
@@ -81,17 +93,30 @@ export const handleCreateUser = async (formData: FormData) => {
       message: response.message || "User creation failed",
     };
   } catch (error: any) {
+    console.error("Create user error:", error.response?.data || error.message);
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Create user action failed";
     return {
       success: false,
-      message: error.message || "Create user action failed",
+      message:
+        typeof errorMessage === "object"
+          ? JSON.stringify(errorMessage)
+          : errorMessage,
     };
   }
 };
 
 // Update user
-export const handleUpdateUser = async (id: string, data: any) => {
+export const handleUpdateUser = async (id: string, formData: FormData) => {
   try {
-    const response = await updateUser(id, data);
+    console.log(
+      "Updating user with FormData keys:",
+      Array.from(formData.keys())
+    );
+
+    const response = await updateUser(id, formData);
 
     if (response.success) {
       revalidatePath("/admin/users");
@@ -99,7 +124,7 @@ export const handleUpdateUser = async (id: string, data: any) => {
 
       return {
         success: true,
-        message: "User updated successfully",
+        message: response.message || "User updated successfully",
         data: response.data,
       };
     }
@@ -109,9 +134,17 @@ export const handleUpdateUser = async (id: string, data: any) => {
       message: response.message || "User update failed",
     };
   } catch (error: any) {
+    console.error("Update user error:", error.response?.data || error.message);
+    const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Update user action failed";
     return {
       success: false,
-      message: error.message || "Update user action failed",
+      message:
+        typeof errorMessage === "object"
+          ? JSON.stringify(errorMessage)
+          : errorMessage,
     };
   }
 };
@@ -126,7 +159,7 @@ export const handleDeleteUser = async (id: string) => {
 
       return {
         success: true,
-        message: "User deleted successfully",
+        message: response.message || "User deleted successfully",
       };
     }
 
@@ -137,7 +170,10 @@ export const handleDeleteUser = async (id: string) => {
   } catch (error: any) {
     return {
       success: false,
-      message: error.message || "Delete user action failed",
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        "Delete user action failed",
     };
   }
 };

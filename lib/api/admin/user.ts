@@ -1,7 +1,7 @@
-import axios from "../axios";
-import { API } from "../endpoints";
+import axios from "@/lib/api/axios";
+import { API } from "@/lib/api/endpoints";
 
-// Get all users
+// Get all users with pagination and filters
 export const getUsers = async (params?: {
   page?: number;
   size?: number;
@@ -9,35 +9,33 @@ export const getUsers = async (params?: {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
 }) => {
-  const query = new URLSearchParams({
-    page: (params?.page ?? 1).toString(),
-    size: (params?.size ?? 20).toString(),
-    search: params?.search ?? "",
-    sortBy: params?.sortBy ?? "fullName",
-    sortOrder: params?.sortOrder ?? "asc",
-  }).toString();
-
-  const res = await axios.get(`${API.ADMIN.USERS.GET_ALL}?${query}`);
+  const res = await axios.get(API.ADMIN.USERS.GET_ALL, { params });
   return res.data;
 };
 
-// Get single user
+// Get user by ID
 export const getUserById = async (id: string) => {
   const res = await axios.get(API.ADMIN.USERS.GET_ONE(id));
   return res.data;
 };
 
-// Create user
+// Create user (with form data for profile picture)
 export const createUser = async (formData: FormData) => {
   const res = await axios.post(API.ADMIN.USERS.CREATE, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
   return res.data;
 };
 
-// Update user
-export const updateUser = async (id: string, data: any) => {
-  const res = await axios.put(API.ADMIN.USERS.UPDATE(id), data);
+// Update user (with form data for profile picture)
+export const updateUser = async (id: string, formData: FormData) => {
+  const res = await axios.put(API.ADMIN.USERS.UPDATE(id), formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return res.data;
 };
 

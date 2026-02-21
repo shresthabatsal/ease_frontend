@@ -1,230 +1,198 @@
 "use client";
 
-import {
-  handleGetUsers,
-  handleDeleteUser,
-} from "@/lib/actions/admin/user-action";
-import { useEffect, useState } from "react";
-import UsersTable from "../_components/UsersTable";
-import Loading from "../loading";
-import NotFound from "../not-found";
-import ErrorComponent from "../error";
-import { PlusIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import ConfirmDialog from "../_components/ConfirmDialog";
-import { toast } from "react-toastify";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { PaginationData, UserData } from "./_components/UserForm";
+import { handleGetUsers } from "@/lib/actions/admin/user-action";
+import { CreateUserDialog } from "./_components/CreateUserDialog";
+import { UsersTable } from "./_components/UsersTable";
+import { ViewUserDialog } from "./_components/ViewUserDialog";
+import { EditUserDialog } from "./_components/EditUserDialog";
+import { DeleteUserDialog } from "./_components/DeleteUserDialog";
 
-export default function AdminUsersPage() {
-  const router = useRouter();
+type DialogMode = "view" | "edit" | "delete" | null;
 
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+const DEFAULT_PAGINATION: PaginationData = {
+  total: 0,
+  page: 1,
+  size: 20,
+  totalPages: 1,
+};
 
-  const [page, setPage] = useState(1);
-  const size = 20;
-  const [totalPages, setTotalPages] = useState(1);
+export default function UsersPage() {
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [pagination, setPagination] =
+    useState<PaginationData>(DEFAULT_PAGINATION);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [searchInput, setSearchInput] = useState("");
+  // Filters and sorting
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [sortField, setSortField] = useState<
+    "fullName" | "email" | "createdAt"
+  >("fullName");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [roleFilter, setRoleFilter] = useState<"all" | "USER" | "ADMIN">("all");
 
-  const [sortBy, setSortBy] = useState("createdAt");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [dialogMode, setDialogMode] = useState<DialogMode>(null);
 
-  const [deleteDialog, setDeleteDialog] = useState<{
-    open: boolean;
-    userId?: string;
-  }>({
-    open: false,
-    userId: undefined,
-  });
-
-  // Debounce search
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 500);
-
-    return () => clearTimeout(handler);
-  }, [searchInput]);
-
-  // Fetch users
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
-
+  const loadUsers = useCallback(
+    async (
+      opts: {
+        page?: number;
+        search?: string;
+        sortField?: typeof sortField;
+        sortOrder?: typeof sortOrder;
+        roleFilter?: typeof roleFilter;
+      } = {}
+    ) => {
+      setIsLoading(true);
       try {
-        const res = await handleGetUsers({
-          page,
-          size,
-          search,
-          sortBy,
-          sortOrder,
+        const result = await handleGetUsers({
+          page: opts.page ?? page,
+          size: 20,
+          search: opts.search ?? search,
+          sortBy: opts.sortField ?? sortField,
+          sortOrder: opts.sortOrder ?? sortOrder,
         });
 
-        if (res.success) {
-          setUsers(res.data || []);
-          setTotalPages(res.pagination?.totalPages || 1);
+        if (result.success) {
+          let filteredUsers = result.data ?? [];
+
+          // Client-side role filter with explicit type
+          if ((opts.roleFilter ?? roleFilter) !== "all") {
+            filteredUsers = filteredUsers.filter(
+              (u: UserData) => u.role === (opts.roleFilter ?? roleFilter)
+            );
+          }
+
+          setUsers(filteredUsers);
+          if (result.pagination) {
+            // Adjust pagination if filters are applied
+            const totalFiltered = filteredUsers.length;
+            setPagination({
+              ...result.pagination,
+              total: totalFiltered,
+              totalPages: Math.ceil(totalFiltered / 20),
+            });
+          }
         } else {
-          setError(res.message || "Failed to load users");
+          toast.error(result.message || "Failed to load users");
         }
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
+      } catch {
+        toast.error("Failed to load users");
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
-    };
+    },
+    [page, search, sortField, sortOrder, roleFilter]
+  );
 
-    fetchUsers();
-  }, [page, search, sortBy, sortOrder]);
+  // Initial load
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
-  // Reset password handler
-  const handleResetPassword = (userId: string) => {
-    alert(`Reset password for user ${userId}`);
-  };
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      loadUsers({ page: 1, search });
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
-  // Open delete dialog
-  const handleDeleteUserDialog = (userId: string) => {
-    setDeleteDialog({ open: true, userId });
-  };
+  // Handlers
+  function handlePageChange(newPage: number) {
+    setPage(newPage);
+    loadUsers({ page: newPage });
+  }
 
-  // Confirm delete
-  const confirmDeleteUser = async () => {
-    if (!deleteDialog.userId) return;
+  function handleSortChange(
+    field: "fullName" | "email" | "createdAt",
+    order: "asc" | "desc"
+  ) {
+    setSortField(field);
+    setSortOrder(order);
+    setPage(1);
+    loadUsers({ page: 1, sortField: field, sortOrder: order });
+  }
 
-    setLoading(true);
-    try {
-      const res = await handleDeleteUser(deleteDialog.userId);
+  function handleRoleFilter(role: "all" | "USER" | "ADMIN") {
+    setRoleFilter(role);
+    setPage(1);
+    loadUsers({ page: 1, roleFilter: role });
+  }
 
-      if (res.success) {
-        toast.success("User deleted successfully!");
+  function openDialog(mode: DialogMode, user: UserData) {
+    setSelectedUser(user);
+    setDialogMode(mode);
+  }
 
-        const refreshed = await handleGetUsers({
-          page,
-          size,
-          search,
-          sortBy,
-          sortOrder,
-        });
+  function closeDialog() {
+    setDialogMode(null);
+    setSelectedUser(null);
+  }
 
-        if (refreshed.success) {
-          setUsers(refreshed.data || []);
-          setTotalPages(refreshed.pagination?.totalPages || 1);
-        }
-      } else {
-        setError(res.message || "Failed to delete user");
-      }
-    } catch (err: any) {
-      setError(err.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-      setDeleteDialog({ open: false, userId: undefined });
-    }
-  };
-
-  if (loading) return <Loading />;
-
-  if (error)
-    return (
-      <ErrorComponent
-        error={new Error(error)}
-        reset={() => window.location.reload()}
-      />
-    );
+  function handleSuccess() {
+    closeDialog();
+    loadUsers();
+  }
 
   return (
-    <div className="p-6">
-      {/* Title */}
-      <h1 className="text-2xl font-bold mb-4">Users</h1>
-
-      {/* Search + Sort + Create */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 mb-4 w-full">
-        {/* Search */}
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          className="border px-3 py-2 rounded flex-grow min-w-[200px]"
-        />
-
-        {/* Sort Dropdown */}
-        <select
-          value={`${sortBy}-${sortOrder}`}
-          onChange={(e) => {
-            const [field, order] = e.target.value.split("-");
-            setSortBy(field);
-            setSortOrder(order as "asc" | "desc");
-            setPage(1);
-          }}
-          className="border px-3 py-2 rounded min-w-[180px]"
-        >
-          <option value="createdAt-desc">Newest First</option>
-          <option value="createdAt-asc">Oldest First</option>
-          <option value="fullName-asc">Name A → Z</option>
-          <option value="fullName-desc">Name Z → A</option>
-          <option value="email-asc">Email A → Z</option>
-          <option value="email-desc">Email Z → A</option>
-          <option value="role-asc">Role A → Z</option>
-          <option value="role-desc">Role Z → A</option>
-        </select>
-
-        {/* Create Button */}
-        <button
-          onClick={() => router.push("/admin/users/create")}
-          className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-black px-4 py-2 rounded font-medium"
-        >
-          <PlusIcon className="w-4 h-4" />
-          Create User
-        </button>
+    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Users</h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Manage user accounts and permissions.
+        </p>
       </div>
 
-      {/* Users Table or Not Found */}
-      {users.length ? (
-        <UsersTable
-          users={users}
-          onResetPassword={handleResetPassword}
-          onDeleteUser={handleDeleteUserDialog}
-        />
-      ) : (
-        <NotFound />
-      )}
+      {/* Toolbar: Search + Create Button in same row */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+        <CreateUserDialog onSuccess={handleSuccess} />
+      </div>
 
-      {/* Pagination Controls */}
-      {users.length > 0 && (
-        <div className="mt-4 flex justify-center items-center gap-2">
-          <button
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
+      {/* Table */}
+      <UsersTable
+        users={users}
+        pagination={pagination}
+        onPageChange={handlePageChange}
+        onRowClick={(u) => openDialog("view", u)}
+        onEdit={(u) => openDialog("edit", u)}
+        onDelete={(u) => openDialog("delete", u)}
+        onSearchChange={setSearch}
+        onSortChange={handleSortChange}
+        onRoleFilter={handleRoleFilter}
+        currentSearch={search}
+        currentSort={{ field: sortField, order: sortOrder }}
+        currentRoleFilter={roleFilter}
+        isLoading={isLoading}
+      />
 
-          <span>
-            Page {page} of {totalPages}
-          </span>
+      {/* Dialogs */}
+      <ViewUserDialog
+        user={selectedUser}
+        open={dialogMode === "view"}
+        onClose={closeDialog}
+      />
 
-          <button
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <EditUserDialog
+        user={selectedUser}
+        open={dialogMode === "edit"}
+        onClose={closeDialog}
+        onSuccess={handleSuccess}
+      />
 
-      {/* Delete Confirmation Dialog */}
-      {deleteDialog.open && (
-        <ConfirmDialog
-          message="Are you sure you want to delete this user?"
-          onCancel={() => setDeleteDialog({ open: false, userId: undefined })}
-          onConfirm={confirmDeleteUser}
-        />
-      )}
+      <DeleteUserDialog
+        user={selectedUser}
+        open={dialogMode === "delete"}
+        onClose={closeDialog}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }
