@@ -56,7 +56,6 @@ import {
   handleUpdateProfile,
   handleUploadProfilePicture,
 } from "@/lib/actions/user-action";
-import Header from "./layout/Header";
 
 const IMAGE_BASE_URL = "http://localhost:5050";
 
@@ -276,7 +275,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
   if (loading) {
     return (
       <>
-        {context === "user" && <Header />}
         <div className="flex items-center justify-center min-h-[60vh]">
           <Loader2 className="animate-spin text-amber-500" size={32} />
         </div>
@@ -422,7 +420,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
 
   return (
     <>
-      {context === "user" && <Header />}
       {pageContent}
 
       <Dialog
