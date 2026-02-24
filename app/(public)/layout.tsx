@@ -6,9 +6,6 @@ import Header from "@/components/layout/Header";
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="bg-white min-h-screen flex flex-col">
-      {/* Header */}
-      <Header variant="auth" />
-
       {/* Centered content */}
       <main className="flex-1 flex items-center justify-center p-4">
         {children}

@@ -4,6 +4,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import { Toaster } from "sonner";
+import { StoreProvider } from "@/context/StoreContext";
+import Header from "@/components/layout/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,7 +39,12 @@ export default function RootLayout({
           closeButton
           // toastOptions={{ duration: 4000 }}
         />
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <StoreProvider>
+            <Header />
+            {children}
+          </StoreProvider>
+        </AuthProvider>
       </body>
     </html>
   );
