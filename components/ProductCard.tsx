@@ -39,6 +39,50 @@ export interface Product {
   storeId: Store | string;
 }
 
+export interface OrderItem {
+  productId: Product | string;
+  quantity: number;
+  price: number;
+}
+
+export interface Order {
+  _id: string;
+  userId: string;
+  storeId: Store | string;
+  items: OrderItem[];
+  totalAmount: number;
+  pickupCode: string;
+  otp?: string;
+  notes?: string;
+  pickupDate: string;
+  pickupTime: string;
+  paymentMethod: "ONLINE";
+  paymentStatus: "PENDING" | "VERIFIED" | "FAILED";
+  status:
+    | "PENDING"
+    | "CONFIRMED"
+    | "READY_FOR_COLLECTION"
+    | "COLLECTED"
+    | "CANCELLED";
+  orderDate: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Payment {
+  _id: string;
+  orderId: Order | string;
+  userId: string;
+  amount: number;
+  paymentMethod?: string;
+  receiptImage: string;
+  notes?: string;
+  status: "PENDING" | "VERIFIED" | "REJECTED";
+  verificationNotes?: string;
+  submittedAt: string;
+  createdAt: string;
+}
+
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
   /\/$/,
   ""
