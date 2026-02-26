@@ -53,9 +53,24 @@ export const API = {
   },
 
   PUBLIC: {
+    ORDERS: {
+      CREATE: "/api/user/orders",
+      BUY_NOW: "/api/user/orders/buy-now",
+      GET_ALL: "/api/user/orders",
+      GET_ONE: (orderId: string) => `/api/user/orders/${orderId}`,
+      CANCEL: (orderId: string) => `/api/user/orders/${orderId}/cancel`,
+    },
+
+    PAYMENTS: {
+      SUBMIT_RECEIPT: "/api/user/payments/submit-receipt",
+      GET_ORDER_PAYMENT: (orderId: string) =>
+        `/api/user/payments/order/${orderId}`,
+      GET_MY_PAYMENTS: "/api/user/payments",
+    },
+
     STORES: {
-      GET_ALL: "/api/stores",
-      GET_ONE: (storeId: string) => `/api/stores/${storeId}`,
+      GET_ALL: "/api/user/stores",
+      GET_ONE: (storeId: string) => `/api/user/stores/${storeId}`,
     },
 
     CATEGORIES: {
@@ -70,6 +85,14 @@ export const API = {
         `/api/products/store/${storeId}/category/${categoryId}`,
       GET_BY_STORE_AND_SUBCATEGORY: (storeId: string, subcategoryId: string) =>
         `/api/products/store/${storeId}/subcategory/${subcategoryId}`,
+    },
+    // Cart
+    CART: {
+      GET: "/api/user/cart",
+      ADD: "/api/user/cart",
+      UPDATE: (productId: string) => `/api/user/cart/${productId}`,
+      REMOVE: (productId: string) => `/api/user/cart/${productId}`,
+      CLEAR: "/api/user/cart/clear",
     },
   },
 };
