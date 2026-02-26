@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import logo from "@/app/assets/images/ease_logo.png";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
+import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -58,6 +59,7 @@ function resolveImg(path?: string) {
 export default function Header() {
   const { isAuthenticated, isAdmin, logout, user, checkAuth } = useAuth();
   const { stores, selectedStore, setSelectedStore, loadingStores } = useStore();
+  const { totalItems: cartCount } = useCart();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -65,7 +67,6 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Cart count
-  const cartCount = 0;
 
   useEffect(() => {
     checkAuth();
@@ -80,7 +81,7 @@ export default function Header() {
     if (e.key !== "Enter") return;
     const q = searchQuery.trim();
     if (!q || !selectedStore) return;
-    // Navigate to search results page
+    // Navigate to dedicated search results page
     router.push(
       `/search?q=${encodeURIComponent(q)}&storeId=${selectedStore._id}`
     );
@@ -101,12 +102,12 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3 px-4 sm:px-6 py-4">
-          {/* Logo */}
+          {/* ── Logo ── */}
           <Link href="/" className="flex-shrink-0">
             <Image src={logo} alt="Logo" width={54} height={34} />
           </Link>
 
-          {/* Store selector with label */}
+          {/* ── Store selector with label ── */}
           <div className="flex-shrink-0 flex flex-col gap-0.5">
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none pl-0.5">
               You're browsing at
