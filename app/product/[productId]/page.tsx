@@ -5,7 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
+import { useCart } from "@/context/CartContext";
 import { getProductById } from "@/lib/api/public";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +39,7 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const { selectedStore } = useStore();
+  const { addToCart } = useCart();
 
   const productId = params.productId as string;
 
@@ -89,11 +92,16 @@ export default function ProductDetailPage() {
   const increment = () => setQuantity((q) => Math.min(maxQty, q + 1));
 
   const handleAddToCart = () => {
-    console.log("Add to cart", { product, quantity });
+    if (!product) return;
+    addToCart(product, quantity);
+    toast.success(`${product.name} added to cart`);
   };
 
   const handleBuyNow = () => {
-    console.log("Buy now", { product, quantity });
+    if (!product) return;
+    router.push(
+      `/checkout?mode=buynow&productId=${product._id}&quantity=${quantity}&storeId=${storeId}`
+    );
   };
 
   // Loading skeleton
@@ -250,7 +258,7 @@ export default function ProductDetailPage() {
             {product.description}
           </p>
 
-          {/* Quantity selector */}
+          {/*  Quantity selector */}
           {isAuthenticated ? (
             <div className="flex flex-col gap-3 pt-2">
               {/* Quantity */}
