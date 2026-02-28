@@ -1,6 +1,5 @@
 "use client";
 
-import { Product } from "@/components/ProductCard";
 import {
   createContext,
   useContext,
@@ -9,95 +8,129 @@ import {
   useCallback,
   ReactNode,
 } from "react";
+import {
+  getCart,
+  addToCart as apiAddToCart,
+  updateCartItem as apiUpdateCartItem,
+  removeCartItem as apiRemoveCartItem,
+  clearCart as apiClearCart,
+  BackendCartItem,
+  BackendCart,
+} from "@/lib/api/cart";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 
-export interface CartItem {
-  product: Product;
-  quantity: number;
-}
+export type { BackendCartItem };
 
 interface CartContextProps {
-  items: CartItem[];
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
-  totalItems: number;
-  totalAmount: number;
+  items: BackendCartItem[];
+  totalPrice: number;
+  itemCount: number;
+  loading: boolean;
+  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  updateQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  removeFromCart: (cartItemId: string) => Promise<void>;
+  clearCart: () => Promise<void>;
+  refetch: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextProps | undefined>(undefined);
 
-const CART_KEY = "ease_cart";
-
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+  const { isAuthenticated } = useAuth();
+  const [cart, setCart] = useState<BackendCart>({
+    items: [],
+    totalPrice: 0,
+    itemCount: 0,
+  });
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const refetch = useCallback(async () => {
+    if (!isAuthenticated) {
+      setCart({ items: [], totalPrice: 0, itemCount: 0 });
+      return;
+    }
     try {
-      const saved = localStorage.getItem(CART_KEY);
-      if (saved) setItems(JSON.parse(saved));
-    } catch {}
-  }, []);
+      setLoading(true);
+      const data = await getCart();
+      setCart(data ?? { items: [], totalPrice: 0, itemCount: 0 });
+    } catch {
+      setCart({ items: [], totalPrice: 0, itemCount: 0 });
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
 
+  // Fetch cart when auth state changes
   useEffect(() => {
-    localStorage.setItem(CART_KEY, JSON.stringify(items));
-  }, [items]);
+    refetch();
+  }, [refetch]);
 
-  const addToCart = useCallback((product: Product, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.product._id === product._id);
-      if (existing) {
-        return prev.map((i) =>
-          i.product._id === product._id
-            ? {
-                ...i,
-                quantity: Math.min(i.quantity + quantity, product.quantity),
-              }
-            : i
-        );
+  const addToCart = useCallback(
+    async (productId: string, quantity = 1) => {
+      try {
+        await apiAddToCart(productId, quantity);
+        await refetch();
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || "Failed to add to cart";
+        toast.error(msg);
+        throw e;
       }
-      return [
-        ...prev,
-        { product, quantity: Math.min(quantity, product.quantity) },
-      ];
-    });
-  }, []);
-
-  const removeFromCart = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product._id !== productId));
-  }, []);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    setItems((prev) =>
-      quantity <= 0
-        ? prev.filter((i) => i.product._id !== productId)
-        : prev.map((i) =>
-            i.product._id === productId ? { ...i, quantity } : i
-          )
-    );
-  }, []);
-
-  const clearCart = useCallback(() => {
-    setItems([]);
-    localStorage.removeItem(CART_KEY);
-  }, []);
-
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalAmount = items.reduce(
-    (sum, i) => sum + i.product.price * i.quantity,
-    0
+    },
+    [refetch]
   );
+
+  const updateQuantity = useCallback(
+    async (cartItemId: string, quantity: number) => {
+      try {
+        await apiUpdateCartItem(cartItemId, quantity);
+        await refetch();
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || "Failed to update cart";
+        toast.error(msg);
+        throw e;
+      }
+    },
+    [refetch]
+  );
+
+  const removeFromCart = useCallback(
+    async (cartItemId: string) => {
+      try {
+        await apiRemoveCartItem(cartItemId);
+        await refetch();
+      } catch (e: any) {
+        const msg = e?.response?.data?.message || "Failed to remove item";
+        toast.error(msg);
+        throw e;
+      }
+    },
+    [refetch]
+  );
+
+  const clearCart = useCallback(async () => {
+    try {
+      await apiClearCart();
+      setCart({ items: [], totalPrice: 0, itemCount: 0 });
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || "Failed to clear cart";
+      toast.error(msg);
+      throw e;
+    }
+  }, []);
 
   return (
     <CartContext.Provider
       value={{
-        items,
+        items: cart.items,
+        totalPrice: cart.totalPrice,
+        itemCount: cart.itemCount,
+        loading,
         addToCart,
-        removeFromCart,
         updateQuantity,
+        removeFromCart,
         clearCart,
-        totalItems,
-        totalAmount,
+        refetch,
       }}
     >
       {children}
@@ -108,17 +141,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 export function useCart(): CartContextProps {
   const ctx = useContext(CartContext);
   if (!ctx) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("[useCart] Called outside of <CartProvider>.");
-    }
     return {
       items: [],
-      addToCart: () => {},
-      removeFromCart: () => {},
-      updateQuantity: () => {},
-      clearCart: () => {},
-      totalItems: 0,
-      totalAmount: 0,
+      totalPrice: 0,
+      itemCount: 0,
+      loading: false,
+      addToCart: async () => {},
+      updateQuantity: async () => {},
+      removeFromCart: async () => {},
+      clearCart: async () => {},
+      refetch: async () => {},
     };
   }
   return ctx;

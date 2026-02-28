@@ -31,6 +31,7 @@ import {
   Layers,
   Store,
   CreditCard,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -91,10 +92,19 @@ export default function ProductDetailPage() {
   const decrement = () => setQuantity((q) => Math.max(1, q - 1));
   const increment = () => setQuantity((q) => Math.min(maxQty, q + 1));
 
-  const handleAddToCart = () => {
+  const [addingToCart, setAddingToCart] = useState(false);
+
+  const handleAddToCart = async () => {
     if (!product) return;
-    addToCart(product, quantity);
-    toast.success(`${product.name} added to cart`);
+    setAddingToCart(true);
+    try {
+      await addToCart(product._id, quantity);
+      toast.success(`${product.name} added to cart`);
+    } catch {
+      // error toast handled in CartContext
+    } finally {
+      setAddingToCart(false);
+    }
   };
 
   const handleBuyNow = () => {
@@ -291,12 +301,16 @@ export default function ProductDetailPage() {
               <div className="flex flex-col sm:flex-row gap-3 pt-1">
                 <Button
                   onClick={handleAddToCart}
-                  disabled={!inStock}
+                  disabled={!inStock || addingToCart}
                   variant="outline"
                   className="flex-1 h-11 rounded-xl gap-2 border-amber-300 text-amber-700 hover:bg-amber-50 font-semibold"
                 >
-                  <ShoppingCart size={16} />
-                  Add to cart
+                  {addingToCart ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <ShoppingCart size={16} />
+                  )}
+                  {addingToCart ? "Adding…" : "Add to cart"}
                 </Button>
                 <Button
                   onClick={handleBuyNow}

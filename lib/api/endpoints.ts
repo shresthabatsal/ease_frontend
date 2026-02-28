@@ -90,9 +90,9 @@ export const API = {
     CART: {
       GET: "/api/user/cart",
       ADD: "/api/user/cart",
-      UPDATE: (productId: string) => `/api/user/cart/${productId}`,
-      REMOVE: (productId: string) => `/api/user/cart/${productId}`,
-      CLEAR: "/api/user/cart/clear",
+      UPDATE: (cartItemId: string) => `/api/user/cart/${cartItemId}`,
+      REMOVE: (cartItemId: string) => `/api/user/cart/${cartItemId}`,
+      CLEAR: "/api/user/cart",
     },
   },
 };

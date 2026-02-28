@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { useCart } from "@/context/CartContext";
+import { useCart, BackendCartItem } from "@/context/CartContext";
 import { createOrder, buyNow } from "@/lib/api/order";
 import { getProductById } from "@/lib/api/public";
 import PaymentReceiptDialog from "@/components/PaymentReceiptDialog";
@@ -33,7 +33,6 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { syncCartToBackend } from "@/lib/api/cart";
 
 interface OrderItem {
   product: Product;
@@ -49,7 +48,7 @@ function CheckoutInner() {
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
   const { selectedStore } = useStore();
-  const { items: cartItems, clearCart } = useCart();
+  const { items: cartItems, clearCart, itemCount } = useCart();
 
   const mode = searchParams.get("mode") ?? "cart";
   const buyNowProductId = searchParams.get("productId") ?? "";
@@ -92,7 +91,17 @@ function CheckoutInner() {
       } else {
         setOrderItems(
           cartItems.map((ci) => ({
-            product: ci.product,
+            product: {
+              _id: ci.productId._id,
+              name: ci.productId.name,
+              price: ci.productId.price,
+              productImage: ci.productId.productImage,
+              quantity: ci.productId.quantity,
+              description: ci.productId.description,
+              categoryId: ci.productId.categoryId,
+              subcategoryId: ci.productId.subcategoryId,
+              storeId: ci.productId.storeId,
+            },
             quantity: ci.quantity,
           }))
         );
@@ -143,7 +152,6 @@ function CheckoutInner() {
         console.log("[Checkout] buyNow payload:", buyNowPayload);
         res = await buyNow(buyNowPayload);
       } else {
-        await syncCartToBackend(cartItems);
         res = await createOrder({
           storeId,
           pickupDate,
@@ -209,7 +217,7 @@ function CheckoutInner() {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-        {/* Form */}
+        {/* ── Left: form ── */}
         <div className="flex flex-col gap-5">
           {/* Store banner */}
           <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-amber-50 border border-amber-100">
@@ -302,7 +310,7 @@ function CheckoutInner() {
           </div>
         </div>
 
-        {/* Right: order summary */}
+        {/* ── Right: order summary ── */}
         <div className="flex flex-col gap-4 p-4 rounded-2xl border border-slate-100 bg-white sticky top-24">
           <div className="flex items-center gap-2">
             <ShoppingBag size={15} className="text-amber-500" />

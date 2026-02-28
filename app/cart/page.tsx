@@ -7,6 +7,7 @@ import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
 import { resolveImg } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -24,7 +25,9 @@ import {
   PackageOpen,
   ShoppingBag,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
+import { useState } from "react";
 
 export default function CartPage() {
   const router = useRouter();
@@ -32,12 +35,17 @@ export default function CartPage() {
   const { selectedStore } = useStore();
   const {
     items,
-    removeFromCart,
+    totalPrice,
+    itemCount,
+    loading,
     updateQuantity,
+    removeFromCart,
     clearCart,
-    totalItems,
-    totalAmount,
   } = useCart();
+
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   if (!isAuthenticated) {
     return (
@@ -56,14 +64,34 @@ export default function CartPage() {
     );
   }
 
-  const handleRemove = (productId: string, name: string) => {
-    removeFromCart(productId);
-    toast.success(`${name} removed from cart`);
+  const handleUpdateQuantity = async (cartItemId: string, quantity: number) => {
+    if (quantity < 1) return;
+    setUpdatingId(cartItemId);
+    try {
+      await updateQuantity(cartItemId, quantity);
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
-  const handleClear = () => {
-    clearCart();
-    toast.success("Cart cleared");
+  const handleRemove = async (cartItemId: string, name: string) => {
+    setRemovingId(cartItemId);
+    try {
+      await removeFromCart(cartItemId);
+      toast.success(`${name} removed from cart`);
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const handleClear = async () => {
+    setClearing(true);
+    try {
+      await clearCart();
+      toast.success("Cart cleared");
+    } finally {
+      setClearing(false);
+    }
   };
 
   return (
@@ -90,25 +118,36 @@ export default function CartPage() {
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
             Your Cart
           </h1>
-          {totalItems > 0 && (
+          {itemCount > 0 && (
             <span className="h-6 px-2 rounded-full bg-amber-100 text-amber-700 text-xs font-bold flex items-center">
-              {totalItems}
+              {itemCount}
             </span>
           )}
         </div>
         {items.length > 0 && (
           <button
             onClick={handleClear}
-            className="text-xs text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1"
+            disabled={clearing}
+            className="text-xs text-slate-400 hover:text-red-500 transition-colors flex items-center gap-1 disabled:opacity-50"
           >
-            <Trash2 size={12} />
+            {clearing ? (
+              <Loader2 size={11} className="animate-spin" />
+            ) : (
+              <Trash2 size={11} />
+            )}
             Clear all
           </button>
         )}
       </div>
 
-      {/* Empty state */}
-      {items.length === 0 ? (
+      {/* Loading */}
+      {loading ? (
+        <div className="flex flex-col gap-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4 text-muted-foreground">
           <PackageOpen size={48} className="text-slate-300" />
           <p className="text-sm">Your cart is empty.</p>
@@ -120,15 +159,17 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6 items-start">
           {/* Cart items */}
           <div className="flex flex-col gap-3">
-            {items.map(({ product, quantity }) => {
+            {items.map((item) => {
+              const product = item.productId;
               const imgSrc = resolveImg(product.productImage);
-              const inStock = product.quantity > 0;
               const maxQty = product.quantity;
+              const isUpdating = updatingId === item._id;
+              const isRemoving = removingId === item._id;
 
               return (
                 <div
-                  key={product._id}
-                  className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white hover:border-amber-200 hover:shadow-sm transition-all"
+                  key={item._id}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white hover:border-amber-200 transition-all"
                 >
                   {/* Image */}
                   <Link
@@ -165,21 +206,28 @@ export default function CartPage() {
                     <div className="flex items-center gap-0 mt-2 rounded-lg border border-slate-200 overflow-hidden w-fit">
                       <button
                         onClick={() =>
-                          updateQuantity(product._id, quantity - 1)
+                          handleUpdateQuantity(item._id, item.quantity - 1)
                         }
-                        disabled={quantity <= 1}
+                        disabled={item.quantity <= 1 || isUpdating}
                         className="h-7 w-7 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition-colors"
                       >
                         <Minus size={12} />
                       </button>
-                      <span className="h-7 w-8 flex items-center justify-center text-xs font-semibold text-slate-800 border-x border-slate-200 select-none">
-                        {quantity}
+                      <span className="h-7 w-8 flex items-center justify-center text-xs font-semibold border-x border-slate-200 select-none">
+                        {isUpdating ? (
+                          <Loader2
+                            size={11}
+                            className="animate-spin text-amber-500"
+                          />
+                        ) : (
+                          item.quantity
+                        )}
                       </span>
                       <button
                         onClick={() =>
-                          updateQuantity(product._id, quantity + 1)
+                          handleUpdateQuantity(item._id, item.quantity + 1)
                         }
-                        disabled={quantity >= maxQty}
+                        disabled={item.quantity >= maxQty || isUpdating}
                         className="h-7 w-7 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition-colors"
                       >
                         <Plus size={12} />
@@ -187,17 +235,21 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  {/* Right: subtotal and remove */}
+                  {/* Subtotal + remove */}
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     <span className="text-sm font-bold text-slate-900">
-                      Rs. {(product.price * quantity).toLocaleString()}
+                      Rs. {item.subtotal.toLocaleString()}
                     </span>
                     <button
-                      onClick={() => handleRemove(product._id, product.name)}
-                      className="text-slate-300 hover:text-red-500 transition-colors"
-                      aria-label="Remove"
+                      onClick={() => handleRemove(item._id, product.name)}
+                      disabled={isRemoving}
+                      className="text-slate-300 hover:text-red-500 transition-colors disabled:opacity-50"
                     >
-                      <Trash2 size={14} />
+                      {isRemoving ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={13} />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -212,7 +264,6 @@ export default function CartPage() {
               <h2 className="text-sm font-bold text-slate-800">Summary</h2>
             </div>
 
-            {/* Store */}
             {selectedStore && (
               <div className="text-xs text-muted-foreground bg-slate-50 rounded-xl px-3 py-2">
                 Pickup from{" "}
@@ -222,18 +273,17 @@ export default function CartPage() {
               </div>
             )}
 
-            {/* Line items total */}
             <div className="flex flex-col gap-1.5 text-sm">
-              {items.map(({ product, quantity }) => (
+              {items.map((item) => (
                 <div
-                  key={product._id}
+                  key={item._id}
                   className="flex items-center justify-between"
                 >
                   <span className="text-muted-foreground truncate max-w-[160px]">
-                    {product.name} ×{quantity}
+                    {item.productId.name} ×{item.quantity}
                   </span>
                   <span className="font-medium text-slate-700">
-                    Rs. {(product.price * quantity).toLocaleString()}
+                    Rs. {item.subtotal.toLocaleString()}
                   </span>
                 </div>
               ))}
@@ -244,7 +294,7 @@ export default function CartPage() {
                 Total
               </span>
               <span className="text-lg font-bold text-slate-900">
-                Rs. {totalAmount.toLocaleString()}
+                Rs. {totalPrice.toLocaleString()}
               </span>
             </div>
 
