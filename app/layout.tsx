@@ -7,6 +7,8 @@ import { Toaster } from "sonner";
 import { StoreProvider } from "@/context/StoreContext";
 import Header from "@/components/layout/Header";
 import { CartProvider } from "@/context/CartContext";
+import { NotificationProvider } from "@/context/NotificationContext";
+import { Providers } from "./providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,8 +45,12 @@ export default function RootLayout({
         <AuthProvider>
           <StoreProvider>
             <CartProvider>
-              <Header />
-              {children}
+              <NotificationProvider>
+                <Header />
+                <Providers>
+                {children}
+                </Providers>
+              </NotificationProvider>
             </CartProvider>
           </StoreProvider>
         </AuthProvider>

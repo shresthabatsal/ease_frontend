@@ -44,6 +44,7 @@ import {
   ShoppingCart,
   Store,
 } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
   /\/$/,
@@ -100,12 +101,12 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-50 bg-white border-b border-slate-100 shadow-sm">
         <div className="flex items-center gap-3 px-4 sm:px-6 py-4">
-          {/* Logo */}
+          {/* ── Logo ── */}
           <Link href="/" className="flex-shrink-0">
             <Image src={logo} alt="Logo" width={54} height={34} />
           </Link>
 
-          {/* Store selector with label */}
+          {/* ── Store selector with label ── */}
           <div className="flex-shrink-0 flex flex-col gap-0.5">
             <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest leading-none pl-0.5">
               You're browsing at
@@ -141,7 +142,7 @@ export default function Header() {
             )}
           </div>
 
-          {/* Search bar */}
+          {/* ── Search bar ── */}
           <div className="relative flex-1 min-w-0">
             <Search
               size={14}
@@ -161,9 +162,9 @@ export default function Header() {
             />
           </div>
 
-          {/* Cart and Auth */}
+          {/* ── Right: Cart + Auth ── */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Cart */}
+            {/* Cart — logged in only */}
             {isAuthenticated && (
               <button
                 onClick={() => router.push("/cart")}
@@ -178,6 +179,9 @@ export default function Header() {
                 )}
               </button>
             )}
+
+            {/* Notifications — logged in only */}
+            {isAuthenticated && <NotificationBell />}
 
             {/* Guest buttons */}
             {!isAuthenticated ? (
@@ -263,7 +267,7 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Logout confirmation */}
+      {/* ── Logout confirmation ── */}
       <AlertDialog open={logoutDialog} onOpenChange={setLogoutDialog}>
         <AlertDialogContent className="rounded-xl sm:max-w-sm">
           <AlertDialogHeader>
