@@ -9,6 +9,8 @@ import {
   Users,
   Package,
   Tag,
+  ShoppingBag,
+  CreditCard,
   Menu,
   X,
   ChevronRight,
@@ -32,16 +34,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 import logo from "@/app/assets/images/ease_logo.png";
 
-const IMAGE_BASE_URL = "http://localhost:5050";
-
-function getImageUrl(path?: string | null): string | undefined {
-  if (!path) return undefined;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
-
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${IMAGE_BASE_URL}${cleanPath}`;
-}
-
 interface SidebarProps {
   collapsed: boolean;
   setCollapsed: (val: boolean) => void;
@@ -52,6 +44,8 @@ const navItems = [
   { name: "Users", icon: Users, href: "/admin/users" },
   { name: "Products", icon: Package, href: "/admin/products" },
   { name: "Categories", icon: Tag, href: "/admin/categories" },
+  { name: "Orders", icon: ShoppingBag, href: "/admin/orders" },
+  { name: "Payments", icon: CreditCard, href: "/admin/payments" },
 ];
 
 // Nav Link
@@ -132,14 +126,9 @@ function UserFooter({
         .slice(0, 2)
     : "A";
 
-  const avatarSrc = getImageUrl(user?.profilePictureUrl);
-
   const avatar = (
     <Avatar className="h-8 w-8 ring-2 ring-amber-200 flex-shrink-0">
-      <AvatarImage
-        src={avatarSrc ?? "/placeholder-product.png"}
-        alt={user?.name || "Admin user"}
-      />
+      <AvatarImage src={user?.profilePicture ?? undefined} alt={user?.name} />
       <AvatarFallback className="bg-gradient-to-br from-amber-400 to-amber-600 text-white text-xs font-bold">
         {initials}
       </AvatarFallback>
@@ -285,7 +274,7 @@ function DesktopSidebar({
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer with real user info */}
         <div
           className={cn(
             "p-3 border-t border-slate-100",
