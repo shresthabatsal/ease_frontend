@@ -1,6 +1,11 @@
 "use server";
 
-import { login, register, requestPasswordReset, resetPassword } from "@/lib/api/auth";
+import {
+  login,
+  register,
+  requestPasswordReset,
+  resetPassword,
+} from "@/lib/api/auth";
 import { LoginInput, RegisterInput } from "@/app/(auth)/schema";
 import { setAuthToken, setUserData, clearAuthCookies } from "@/lib/cookie";
 import { redirect } from "next/navigation";
@@ -94,5 +99,24 @@ export const handleResetPassword = async (
       success: false,
       message: error.message || "Failed to reset password",
     };
+  }
+};
+
+import { googleAuth } from "@/lib/api/auth";
+
+export const handleGoogleAuth = async (token: string) => {
+  try {
+    const response = await googleAuth(token);
+    if (response.success) {
+      await setAuthToken(response.token);
+      await setUserData(response.data);
+      return { success: true, message: "Google login successful" };
+    }
+    return {
+      success: false,
+      message: response.message || "Google auth failed",
+    };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Google auth failed" };
   }
 };

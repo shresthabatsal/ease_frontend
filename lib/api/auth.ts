@@ -54,3 +54,14 @@ export const resetPassword = async (token: string, newPassword: string) => {
     );
   }
 };
+
+export const googleAuth = async (token: string) => {
+  try {
+    const response = await axios.post("/api/auth/google", { token });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || error.message || "Google auth failed."
+    );
+  }
+};
