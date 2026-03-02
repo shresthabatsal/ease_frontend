@@ -50,6 +50,21 @@ export const API = {
       UPDATE: (id: string) => `/api/admin/subcategories/${id}`,
       DELETE: (id: string) => `/api/admin/subcategories/${id}`,
     },
+
+    ORDERS: {
+      GET_BY_STORE: (storeId: string) => `/api/admin/stores/${storeId}/orders`,
+      GET_ONE: (orderId: string) => `/api/admin/${orderId}`,
+      UPDATE_STATUS: (orderId: string) => `/api/admin/orders/${orderId}/status`,
+      VERIFY_OTP: (orderId: string) =>
+        `/api/admin/orders/${orderId}/verify-otp`,
+      DELETE: (orderId: string) => `/api/admin/orders/${orderId}`,
+    },
+
+    PAYMENTS: {
+      GET_ALL: "/api/admin/payments",
+      GET_ONE: (paymentId: string) => `/api/admin/payments/${paymentId}`,
+      VERIFY: (paymentId: string) => `/api/admin/payments/${paymentId}/verify`,
+    },
   },
 
   PUBLIC: {
@@ -86,6 +101,21 @@ export const API = {
       GET_BY_STORE_AND_SUBCATEGORY: (storeId: string, subcategoryId: string) =>
         `/api/products/store/${storeId}/subcategory/${subcategoryId}`,
     },
+    RATINGS: {
+      GET_BY_PRODUCT: (productId: string) =>
+        `/api/user/ratings/product/${productId}`,
+      CREATE: "/api/user/ratings",
+      UPDATE: (ratingId: string) => `/api/user/ratings/${ratingId}`,
+      DELETE: (ratingId: string) => `/api/user/ratings/${ratingId}`,
+    },
+    NOTIFICATIONS: {
+      GET_ALL: "/api/user/notification",
+      GET_UNREAD_COUNT: "/api/user/notification/unread/count",
+      MARK_READ: (id: string) => `/api/user/notification/${id}/read`,
+      MARK_ALL_READ: "/api/user/notification/mark-all/read",
+      DELETE: (id: string) => `/api/user/notification/${id}`,
+    },
+
     // Cart
     CART: {
       GET: "/api/user/cart",
