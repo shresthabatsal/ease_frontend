@@ -11,6 +11,7 @@ import { toast } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import GoogleAuthButton from "./GoogleAuthButton";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -109,9 +110,7 @@ export default function LoginForm() {
       </div>
 
       {/* Continue with Google */}
-      <Button type="button" variant="outline">
-        Continue with Google
-      </Button>
+      <GoogleAuthButton />
     </form>
   );
 }
