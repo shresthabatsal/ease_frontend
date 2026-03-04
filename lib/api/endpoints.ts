@@ -31,6 +31,10 @@ export const API = {
 
     STORES: {
       GET_ALL: "/api/admin/stores",
+      GET_ONE: (id: string) => `/api/admin/stores/${id}`,
+      CREATE: "/api/admin/stores",
+      UPDATE: (id: string) => `/api/admin/stores/${id}`,
+      DELETE: (id: string) => `/api/admin/stores/${id}`,
     },
 
     CATEGORIES: {
@@ -51,6 +55,7 @@ export const API = {
       DELETE: (id: string) => `/api/admin/subcategories/${id}`,
     },
 
+    // Admin order router is mounted at /api/admin
     ORDERS: {
       GET_BY_STORE: (storeId: string) => `/api/admin/stores/${storeId}/orders`,
       GET_ONE: (orderId: string) => `/api/admin/${orderId}`,
@@ -60,10 +65,12 @@ export const API = {
       DELETE: (orderId: string) => `/api/admin/orders/${orderId}`,
     },
 
+    // Admin payment router is mounted at /api/admin/payments
     PAYMENTS: {
       GET_ALL: "/api/admin/payments",
       GET_ONE: (paymentId: string) => `/api/admin/payments/${paymentId}`,
-      VERIFY: (paymentId: string) => `/api/admin/payments/${paymentId}/verify`,
+      // Note: /pending route conflicts with /:paymentId — use GET_ALL with status=PENDING filter instead
+      VERIFY: (paymentId: string) => `/api/admin/payments/${paymentId}/verify`, // PUT
     },
   },
 
@@ -86,6 +93,7 @@ export const API = {
     STORES: {
       GET_ALL: "/api/user/stores",
       GET_ONE: (storeId: string) => `/api/user/stores/${storeId}`,
+      GET_NEAREST: "/api/user/stores/nearest/by-location",
     },
 
     CATEGORIES: {
@@ -108,12 +116,32 @@ export const API = {
       UPDATE: (ratingId: string) => `/api/user/ratings/${ratingId}`,
       DELETE: (ratingId: string) => `/api/user/ratings/${ratingId}`,
     },
+
     NOTIFICATIONS: {
-      GET_ALL: "/api/user/notification",
-      GET_UNREAD_COUNT: "/api/user/notification/unread/count",
-      MARK_READ: (id: string) => `/api/user/notification/${id}/read`,
-      MARK_ALL_READ: "/api/user/notification/mark-all/read",
-      DELETE: (id: string) => `/api/user/notification/${id}`,
+      GET_ALL: "/api/user/notifications",
+      GET_UNREAD_COUNT: "/api/user/notifications/unread/count",
+      MARK_READ: (id: string) => `/api/user/notifications/${id}/read`,
+      MARK_ALL_READ: "/api/user/notifications/mark-all/read",
+      DELETE: (id: string) => `/api/user/notifications/${id}`,
+    },
+
+    SUPPORT: {
+      TICKETS: {
+        CREATE: "/api/support/tickets",
+        GET_MY: "/api/support/tickets/my-tickets",
+        GET_ONE: (id: string) => `/api/support/tickets/${id}`,
+        CLOSE: (id: string) => `/api/support/tickets/${id}/close`,
+      },
+      ADMIN_TICKETS: {
+        GET_OPEN: "/api/support/tickets/admin/open-tickets",
+        GET_MINE: "/api/support/tickets/admin/my-tickets",
+        ASSIGN: (id: string) => `/api/support/tickets/${id}/assign`,
+        UPDATE_STATUS: (id: string) => `/api/support/tickets/${id}/status`,
+      },
+      MESSAGES: {
+        SEND: "/api/support/messages",
+        GET: (ticketId: string) => `/api/support/messages/${ticketId}`,
+      },
     },
 
     // Cart
@@ -122,7 +150,7 @@ export const API = {
       ADD: "/api/user/cart",
       UPDATE: (cartItemId: string) => `/api/user/cart/${cartItemId}`,
       REMOVE: (cartItemId: string) => `/api/user/cart/${cartItemId}`,
-      CLEAR: "/api/user/cart",
+      CLEAR: "/api/user/cart", // DELETE / with no body = clearCart
     },
   },
 };
