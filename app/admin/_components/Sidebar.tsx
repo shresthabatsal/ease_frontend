@@ -11,6 +11,8 @@ import {
   Tag,
   ShoppingBag,
   CreditCard,
+  Store,
+  LifeBuoy,
   Menu,
   X,
   ChevronRight,
@@ -42,13 +44,15 @@ interface SidebarProps {
 const navItems = [
   { name: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { name: "Users", icon: Users, href: "/admin/users" },
+  { name: "Stores", icon: Store, href: "/admin/stores" },
   { name: "Products", icon: Package, href: "/admin/products" },
   { name: "Categories", icon: Tag, href: "/admin/categories" },
   { name: "Orders", icon: ShoppingBag, href: "/admin/orders" },
   { name: "Payments", icon: CreditCard, href: "/admin/payments" },
+  { name: "Support", icon: LifeBuoy, href: "/admin/support" },
 ];
 
-// Nav Link
+// ─── Nav link ─────────────────────────────────────────────────────────────────
 function NavLink({
   item,
   collapsed,
