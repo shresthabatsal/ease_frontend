@@ -43,8 +43,10 @@ import {
   Search,
   ShoppingCart,
   Store,
+  Map,
 } from "lucide-react";
 import NotificationBell from "@/components/NotificationBell";
+import StoreMapView from "@/components/StoreMapView";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(
   /\/$/,
@@ -66,6 +68,7 @@ export default function Header() {
 
   const [logoutDialog, setLogoutDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [storeMapOpen, setStoreMapOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -141,6 +144,16 @@ export default function Header() {
               </Select>
             )}
           </div>
+
+          {/* Map store picker button */}
+          <button
+            onClick={() => setStoreMapOpen(true)}
+            className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50 transition-colors"
+            title="Browse stores on map"
+            aria-label="Open store map"
+          >
+            <Map size={14} className="text-slate-600" />
+          </button>
 
           {/* ── Search bar ── */}
           <div className="relative flex-1 min-w-0">
@@ -290,6 +303,7 @@ export default function Header() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <StoreMapView open={storeMapOpen} onOpenChange={setStoreMapOpen} />
     </>
   );
 }

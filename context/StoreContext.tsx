@@ -13,6 +13,10 @@ export interface Store {
   _id: string;
   storeName: string;
   location: string;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
   pickupInstructions: string;
   storeImage?: string;
 }
@@ -80,7 +84,6 @@ export function useStore(): StoreContextProps {
           "Make sure <StoreProvider> wraps your layout in app/layout.tsx."
       );
     }
-    // Return a safe default so components don't crash
     return {
       stores: [],
       selectedStore: null,
