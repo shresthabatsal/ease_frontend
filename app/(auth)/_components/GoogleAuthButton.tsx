@@ -19,7 +19,7 @@ export default function GoogleAuthButton() {
       const result = await handleGoogleAuth(credentialResponse.credential!);
       if (result.success) {
         toast.success("Logged in with Google!");
-        router.push("/dashboard");
+        router.push("/");
       } else {
         toast.error(result.message);
       }
