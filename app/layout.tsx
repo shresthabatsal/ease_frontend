@@ -5,10 +5,11 @@ import { AuthProvider } from "@/context/AuthContext";
 import { ToastContainer } from "react-toastify";
 import { Toaster } from "sonner";
 import { StoreProvider } from "@/context/StoreContext";
-import Header from "@/components/layout/Header";
 import { CartProvider } from "@/context/CartContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { Providers } from "./providers";
+import ConditionalHeader from "@/components/layout/ConditionalHeader";
+import ConditionalFooter from "@/components/layout/ConditionalFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,20 +37,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ToastContainer position="top-right" />
-        <Toaster
-          position="top-right"
-          richColors
-          closeButton
-          // toastOptions={{ duration: 4000 }}
-        />
+        <Toaster position="top-right" richColors closeButton />
         <AuthProvider>
           <StoreProvider>
             <CartProvider>
               <NotificationProvider>
-                <Header />
-                <Providers>
-                {children}
-                </Providers>
+                <div className="min-h-screen flex flex-col">
+                  <ConditionalHeader />
+                  <main className="flex-1">
+                    <Providers>{children}</Providers>
+                  </main>
+                  <ConditionalFooter />
+                </div>
               </NotificationProvider>
             </CartProvider>
           </StoreProvider>
