@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useStore } from "@/context/StoreContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +33,7 @@ import {
   Loader2,
   ChevronRight,
   ExternalLink,
-  AlertCircle,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,7 +42,10 @@ import {
   fetchOrderPayment,
 } from "@/lib/actions/admin/order-action";
 
-// Types
+interface StoreOption {
+  _id: string;
+  storeName: string;
+}
 type PaymentStatus = "PENDING" | "VERIFIED" | "REJECTED";
 type OrderPaymentStatus = "PENDING" | "VERIFIED" | "FAILED";
 
@@ -68,34 +78,43 @@ interface Payment {
   submittedAt: string;
   createdAt: string;
 }
-
-// Combines order and its payment for display
 interface OrderWithPayment {
   order: Order;
-  payment: Payment | null;
-  loadingPayment: boolean;
+  payment: Payment;
 }
 
-const PAY_STATUS_CFG: Record<
-  PaymentStatus,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  PENDING: {
-    label: "Awaiting Verification",
-    color: "bg-orange-50 text-orange-600 border-orange-200",
-    icon: <Clock size={11} />,
-  },
-  VERIFIED: {
-    label: "Verified",
-    color: "bg-green-50 text-green-700 border-green-200",
-    icon: <CheckCircle2 size={11} />,
-  },
-  REJECTED: {
-    label: "Rejected",
-    color: "bg-red-50 text-red-600 border-red-200",
-    icon: <XCircle size={11} />,
-  },
-};
+const PAY_STATUS_CFG: Record<PaymentStatus, { label: string; color: string }> =
+  {
+    PENDING: {
+      label: "Awaiting Verification",
+      color: "bg-orange-50 text-orange-600 border-orange-200",
+    },
+    VERIFIED: {
+      label: "Verified",
+      color: "bg-green-50 text-green-700 border-green-200",
+    },
+    REJECTED: {
+      label: "Rejected",
+      color: "bg-red-50 text-red-600 border-red-200",
+    },
+  };
+
+function PayIcon({
+  status,
+  size = 11,
+}: {
+  status: PaymentStatus;
+  size?: number;
+}) {
+  switch (status) {
+    case "PENDING":
+      return <Clock size={size} />;
+    case "VERIFIED":
+      return <CheckCircle2 size={size} />;
+    case "REJECTED":
+      return <XCircle size={size} />;
+  }
+}
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5050";
 function resolveReceipt(path: string) {
@@ -120,7 +139,6 @@ function fmtDateTime(d: string) {
   });
 }
 
-// Verify Dialog
 function VerifyDialog({
   item,
   open,
@@ -130,21 +148,19 @@ function VerifyDialog({
   item: OrderWithPayment | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (orderId: string) => void;
 }) {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState<"VERIFIED" | "REJECTED" | null>(null);
-
   useEffect(() => {
     if (!open) setNotes("");
   }, [open]);
-
-  if (!item?.payment) return null;
-
+  if (!item) return null;
   const { order, payment } = item;
   const user =
     typeof order.userId === "object" ? (order.userId as OrderUser) : null;
   const receiptSrc = resolveReceipt(payment.receiptImage);
+  const cfg = PAY_STATUS_CFG[payment.status] ?? PAY_STATUS_CFG.PENDING;
 
   const handleAction = async (status: "VERIFIED" | "REJECTED") => {
     if (status === "REJECTED" && !notes.trim()) {
@@ -163,7 +179,7 @@ function VerifyDialog({
           ? "Payment verified — order confirmed, OTP sent to customer"
           : "Payment rejected — customer can resubmit"
       );
-      onSuccess();
+      onSuccess(order._id);
       onOpenChange(false);
     } else {
       toast.error(res.message ?? "Action failed");
@@ -180,20 +196,16 @@ function VerifyDialog({
             resubmission.
           </DialogDescription>
         </DialogHeader>
-
         <div className="flex flex-col gap-4">
-          {/* Status badge */}
           <Badge
             className={cn(
               "self-start gap-1 border font-medium px-2 py-0.5 text-xs",
-              PAY_STATUS_CFG[payment.status].color
+              cfg.color
             )}
           >
-            {PAY_STATUS_CFG[payment.status].icon}
-            {PAY_STATUS_CFG[payment.status].label}
+            <PayIcon status={payment.status} size={11} />
+            {cfg.label}
           </Badge>
-
-          {/* Customer + amount */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-xl bg-slate-50">
               <p className="text-xs text-muted-foreground mb-1">Customer</p>
@@ -214,8 +226,6 @@ function VerifyDialog({
               )}
             </div>
           </div>
-
-          {/* Order info */}
           <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
             <p className="text-xs text-amber-600 font-medium mb-1">Order</p>
             <p className="text-xs font-mono text-amber-800">
@@ -225,8 +235,6 @@ function VerifyDialog({
               Pickup: {fmtDate(order.pickupDate)} at {order.pickupTime}
             </p>
           </div>
-
-          {/* Receipt image */}
           <div className="flex flex-col gap-1.5">
             <p className="text-xs font-semibold text-slate-600">
               Payment Receipt
@@ -254,7 +262,6 @@ function VerifyDialog({
               </div>
             )}
           </div>
-
           {payment.notes && (
             <div className="p-3 rounded-xl bg-slate-50">
               <p className="text-xs text-muted-foreground mb-1">
@@ -263,12 +270,9 @@ function VerifyDialog({
               <p className="text-sm">{payment.notes}</p>
             </div>
           )}
-
           <p className="text-xs text-muted-foreground">
             Submitted: {fmtDateTime(payment.submittedAt || payment.createdAt)}
           </p>
-
-          {/* Already processed */}
           {payment.status !== "PENDING" && (
             <div
               className={cn(
@@ -291,14 +295,12 @@ function VerifyDialog({
               )}
             </div>
           )}
-
-          {/* Action buttons — only for PENDING */}
           {payment.status === "PENDING" && (
             <div className="flex flex-col gap-3 pt-2 border-t border-slate-100">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="notes" className="text-sm font-medium">
-                  Notes
-                  <span className="text-xs font-normal text-muted-foreground ml-1">
+                  Notes{" "}
+                  <span className="text-xs font-normal text-muted-foreground">
                     (required for rejection)
                   </span>
                 </Label>
@@ -346,9 +348,9 @@ function VerifyDialog({
   );
 }
 
-// Main Page
 export default function AdminPaymentsPage() {
-  const { selectedStore } = useStore();
+  const { selectedStore, stores } = useStore();
+  const [localStore, setLocalStore] = useState<StoreOption | null>(null);
   const [rows, setRows] = useState<OrderWithPayment[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -358,66 +360,59 @@ export default function AdminPaymentsPage() {
   const [selected, setSelected] = useState<OrderWithPayment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const storeId = selectedStore?._id ?? "";
+  useEffect(() => {
+    if (selectedStore) setLocalStore(selectedStore);
+  }, [selectedStore]);
 
-  const load = useCallback(async () => {
+  const storeIdRef = useRef<string>("");
+  storeIdRef.current = localStore?._id ?? "";
+
+  const load = async (storeId: string) => {
     if (!storeId) return;
     setLoading(true);
-
-    // Fetch all orders for the store
     const ordersRes = await fetchStoreOrders(storeId);
     if (!ordersRes.success) {
       toast.error(ordersRes.message);
       setLoading(false);
       return;
     }
-
-    // Filter
-    const allOrders: Order[] = (ordersRes.data ?? []).filter(
-      (o: Order) => o.paymentStatus !== undefined
-    );
-
-    const initialRows: OrderWithPayment[] = allOrders.map((o) => ({
-      order: o,
-      payment: null,
-      loadingPayment: true,
-    }));
-    setRows(initialRows);
-    setLoading(false);
-
-    // Fetch payments
+    const allOrders: Order[] = ordersRes.data ?? [];
     const settled = await Promise.allSettled(
       allOrders.map((o) => fetchOrderPayment(o._id))
     );
-
-    setRows(
-      allOrders
-        .map((o, i) => {
-          const result = settled[i];
-          const payment =
-            result.status === "fulfilled" && result.value.success
-              ? result.value.data ?? null
-              : null;
-          return { order: o, payment, loadingPayment: false };
-        })
-        .filter((r) => r.payment !== null)
-    );
-  }, [storeId]);
+    const combined: OrderWithPayment[] = [];
+    allOrders.forEach((order, i) => {
+      const result = settled[i];
+      const payment =
+        result.status === "fulfilled" && result.value.success
+          ? result.value.data ?? null
+          : null;
+      if (payment) combined.push({ order, payment });
+    });
+    setRows(combined);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    load();
-  }, [load]);
+    const id = localStore?._id ?? "";
+    setRows([]);
+    if (id) load(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localStore?._id]);
 
-  const refreshRow = async (orderId: string) => {
+  const handleRefresh = () => load(storeIdRef.current);
+
+  const handleVerifySuccess = async (orderId: string) => {
     const res = await fetchOrderPayment(orderId);
-    setRows((prev) =>
-      prev.map((r) =>
-        r.order._id === orderId
-          ? { ...r, payment: res.success ? res.data ?? null : r.payment }
-          : r
-      )
-    );
-    load();
+    if (res.success && res.data) {
+      setRows((prev) =>
+        prev.map((r) =>
+          r.order._id === orderId ? { ...r, payment: res.data } : r
+        )
+      );
+    } else {
+      setRows((prev) => prev.filter((r) => r.order._id !== orderId));
+    }
   };
 
   const filtered = rows.filter((r) => {
@@ -428,46 +423,64 @@ export default function AdminPaymentsPage() {
       user?.fullName?.toLowerCase().includes(search.toLowerCase()) ||
       user?.email?.toLowerCase().includes(search.toLowerCase()) ||
       r.order._id.toLowerCase().includes(search.toLowerCase());
-
-    const paymentStatus = r.payment?.status;
     const matchStatus =
       statusFilter === "ALL" ||
-      (statusFilter === "PENDING" && paymentStatus === "PENDING") ||
-      (statusFilter === "VERIFIED" && paymentStatus === "VERIFIED");
-
-    return matchSearch && matchStatus && r.payment !== null;
+      (statusFilter === "PENDING" && r.payment.status === "PENDING") ||
+      (statusFilter === "VERIFIED" && r.payment.status === "VERIFIED");
+    return matchSearch && matchStatus;
   });
 
   const pendingCount = rows.filter(
-    (r) => r.payment?.status === "PENDING"
+    (r) => r.payment.status === "PENDING"
   ).length;
   const verifiedCount = rows.filter(
-    (r) => r.payment?.status === "VERIFIED"
+    (r) => r.payment.status === "VERIFIED"
   ).length;
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Payments</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {selectedStore
-              ? `Verifying receipts for ${selectedStore.storeName}`
+            {localStore
+              ? `Verifying receipts for ${localStore.storeName}`
               : "Select a store to view payments"}
           </p>
         </div>
-        <Button
-          onClick={load}
-          disabled={loading || !storeId}
-          variant="outline"
-          className="rounded-xl gap-2"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Select
+            value={localStore?._id ?? ""}
+            onValueChange={(v) => {
+              const s = stores?.find((s: StoreOption) => s._id === v) ?? null;
+              setLocalStore(s);
+            }}
+          >
+            <SelectTrigger className="w-48 h-9 rounded-xl border-slate-200 gap-2">
+              <Store size={13} className="text-slate-400 flex-shrink-0" />
+              <SelectValue placeholder="Select store" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {stores?.map((s: StoreOption) => (
+                <SelectItem key={s._id} value={s._id}>
+                  {s.storeName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={handleRefresh}
+            disabled={loading || !localStore}
+            variant="outline"
+            className="rounded-xl gap-2"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Summary tabs */}
       <div className="flex items-center gap-2">
         {(["PENDING", "VERIFIED", "ALL"] as const).map((s) => {
           const count =
@@ -509,7 +522,6 @@ export default function AdminPaymentsPage() {
         })}
       </div>
 
-      {/* Search */}
       <div className="relative max-w-sm">
         <Search
           size={14}
@@ -523,17 +535,13 @@ export default function AdminPaymentsPage() {
         />
       </div>
 
-      {/* No store */}
-      {!storeId && (
+      {!localStore && (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-2">
-          <CreditCard size={40} className="text-slate-300" />
-          <p className="text-sm">
-            Select a store from the header to view payments.
-          </p>
+          <Store size={40} className="text-slate-300" />
+          <p className="text-sm">Select a store above to view payments.</p>
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -542,9 +550,8 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
-      {/* List */}
       {!loading &&
-        storeId &&
+        localStore &&
         (filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-2">
             <CreditCard size={40} className="text-slate-300" />
@@ -558,14 +565,13 @@ export default function AdminPaymentsPage() {
           <div className="flex flex-col gap-2">
             {filtered.map((item) => {
               const { order, payment } = item;
-              if (!payment) return null;
               const user =
                 typeof order.userId === "object"
                   ? (order.userId as OrderUser)
                   : null;
               const receiptSrc = resolveReceipt(payment.receiptImage);
-              const cfg = PAY_STATUS_CFG[payment.status];
-
+              const cfg =
+                PAY_STATUS_CFG[payment.status] ?? PAY_STATUS_CFG.PENDING;
               return (
                 <button
                   key={order._id}
@@ -575,7 +581,6 @@ export default function AdminPaymentsPage() {
                   }}
                   className="group flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:border-amber-200 hover:shadow-sm transition-all text-left w-full"
                 >
-                  {/* Receipt thumbnail */}
                   <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
                     {receiptSrc ? (
                       <img
@@ -589,7 +594,6 @@ export default function AdminPaymentsPage() {
                       </div>
                     )}
                   </div>
-
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-slate-800">
@@ -604,7 +608,7 @@ export default function AdminPaymentsPage() {
                           cfg.color
                         )}
                       >
-                        {cfg.icon}
+                        <PayIcon status={payment.status} size={10} />
                         {cfg.label}
                       </Badge>
                     </div>
@@ -617,7 +621,6 @@ export default function AdminPaymentsPage() {
                       {` · ${fmtDate(payment.createdAt)}`}
                     </p>
                   </div>
-
                   <ChevronRight
                     size={15}
                     className="text-slate-300 group-hover:text-amber-400 flex-shrink-0 transition-colors"
@@ -632,7 +635,7 @@ export default function AdminPaymentsPage() {
         item={selected}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onSuccess={() => selected && refreshRow(selected.order._id)}
+        onSuccess={handleVerifySuccess}
       />
     </div>
   );

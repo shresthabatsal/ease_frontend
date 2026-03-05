@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useStore } from "@/context/StoreContext";
 import { resolveImg } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
@@ -48,10 +48,20 @@ import {
   Calendar,
   Trash2,
   KeyRound,
+  Store,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { verifyOtpAction, updateOrderStatus, deleteOrderAction, fetchStoreOrders } from "@/lib/actions/admin/order-action";
+import {
+  verifyOtpAction,
+  updateOrderStatus,
+  deleteOrderAction,
+  fetchStoreOrders,
+} from "@/lib/actions/admin/order-action";
 
+interface StoreOption {
+  _id: string;
+  storeName: string;
+}
 type OrderStatus =
   | "PENDING"
   | "CONFIRMED"
@@ -81,34 +91,26 @@ interface Order {
   createdAt: string;
 }
 
-const STATUS_CFG: Record<
-  OrderStatus,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
+const STATUS_CFG: Record<OrderStatus, { label: string; color: string }> = {
   PENDING: {
     label: "Pending",
     color: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    icon: <Clock size={11} />,
   },
   CONFIRMED: {
     label: "Confirmed",
     color: "bg-blue-50 text-blue-700 border-blue-200",
-    icon: <CheckCircle2 size={11} />,
   },
   READY_FOR_COLLECTION: {
     label: "Ready for Pickup",
     color: "bg-purple-50 text-purple-700 border-purple-200",
-    icon: <Package size={11} />,
   },
   COLLECTED: {
     label: "Collected",
     color: "bg-green-50 text-green-700 border-green-200",
-    icon: <CheckCircle2 size={11} />,
   },
   CANCELLED: {
     label: "Cancelled",
     color: "bg-red-50 text-red-600 border-red-200",
-    icon: <XCircle size={11} />,
   },
 };
 const PAYMENT_CFG: Record<PaymentStatus, { label: string; color: string }> = {
@@ -125,8 +127,6 @@ const PAYMENT_CFG: Record<PaymentStatus, { label: string; color: string }> = {
     color: "bg-red-50 text-red-600 border-red-200",
   },
 };
-
-// Statuses admin can manually set (COLLECTED only via OTP)
 const TRANSITIONS: Record<
   OrderStatus,
   Array<"READY_FOR_COLLECTION" | "CANCELLED">
@@ -138,6 +138,27 @@ const TRANSITIONS: Record<
   CANCELLED: [],
 };
 
+function StatusIcon({
+  status,
+  size = 11,
+}: {
+  status: OrderStatus;
+  size?: number;
+}) {
+  switch (status) {
+    case "PENDING":
+      return <Clock size={size} />;
+    case "CONFIRMED":
+      return <CheckCircle2 size={size} />;
+    case "READY_FOR_COLLECTION":
+      return <Package size={size} />;
+    case "COLLECTED":
+      return <CheckCircle2 size={size} />;
+    case "CANCELLED":
+      return <XCircle size={size} />;
+  }
+}
+
 function fmt(d: string) {
   return new Date(d).toLocaleDateString("en-US", {
     year: "numeric",
@@ -146,7 +167,6 @@ function fmt(d: string) {
   });
 }
 
-// OTP Dialog
 function OtpDialog({
   open,
   onOpenChange,
@@ -185,8 +205,7 @@ function OtpDialog({
         <DialogHeader>
           <DialogTitle>Verify OTP & Collect</DialogTitle>
           <DialogDescription>
-            Ask the customer for their OTP and enter it below to confirm
-            collection.
+            Ask the customer for their OTP to confirm collection.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 pt-1">
@@ -226,7 +245,6 @@ function OtpDialog({
   );
 }
 
-// Order Detail Dialog
 function OrderDetailDialog({
   order,
   open,
@@ -240,15 +258,18 @@ function OrderDetailDialog({
 }) {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [otpOpen, setOtpOpen] = useState(false);
-
   if (!order) return null;
 
   const user = typeof order.userId === "object" ? order.userId : null;
-  const statusCfg = STATUS_CFG[order.status];
-  const paymentCfg = PAYMENT_CFG[order.paymentStatus];
-  const transitions = TRANSITIONS[order.status];
-  const canOtp = order.status === "READY_FOR_COLLECTION";
-  const canDelete = order.status === "CANCELLED";
+  const statusCfg = STATUS_CFG[order.status] ?? {
+    label: order.status,
+    color: "bg-slate-50 text-slate-600 border-slate-200",
+  };
+  const paymentCfg = PAYMENT_CFG[order.paymentStatus] ?? {
+    label: order.paymentStatus,
+    color: "bg-slate-50 text-slate-600 border-slate-200",
+  };
+  const transitions = TRANSITIONS[order.status] ?? [];
 
   const handleStatusChange = async (
     status: "READY_FOR_COLLECTION" | "CANCELLED"
@@ -260,9 +281,7 @@ function OrderDetailDialog({
       toast.success(`Order marked as ${STATUS_CFG[status].label}`);
       onRefresh();
       onOpenChange(false);
-    } else {
-      toast.error(res.message ?? "Failed to update status");
-    }
+    } else toast.error(res.message ?? "Failed to update status");
   };
 
   const handleDelete = async () => {
@@ -271,9 +290,7 @@ function OrderDetailDialog({
       toast.success("Order deleted");
       onRefresh();
       onOpenChange(false);
-    } else {
-      toast.error(res.message ?? "Failed to delete");
-    }
+    } else toast.error(res.message ?? "Failed to delete");
   };
 
   return (
@@ -282,15 +299,13 @@ function OrderDetailDialog({
         <DialogContent className="sm:max-w-lg rounded-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              Order
+              Order{" "}
               <span className="font-mono text-sm text-muted-foreground">
                 #{order._id.slice(-8).toUpperCase()}
               </span>
             </DialogTitle>
           </DialogHeader>
-
           <div className="flex flex-col gap-4">
-            {/* Badges */}
             <div className="flex gap-2 flex-wrap">
               <Badge
                 className={cn(
@@ -298,7 +313,7 @@ function OrderDetailDialog({
                   statusCfg.color
                 )}
               >
-                {statusCfg.icon}
+                <StatusIcon status={order.status} size={11} />
                 {statusCfg.label}
               </Badge>
               <Badge
@@ -310,8 +325,6 @@ function OrderDetailDialog({
                 {paymentCfg.label}
               </Badge>
             </div>
-
-            {/* Customer */}
             <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50">
               <User size={14} className="text-slate-400 flex-shrink-0" />
               <div>
@@ -322,8 +335,6 @@ function OrderDetailDialog({
                 </p>
               </div>
             </div>
-
-            {/* Pickup info */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-start gap-2 p-3 rounded-xl bg-slate-50">
                 <Calendar size={13} className="text-amber-500 mt-0.5" />
@@ -340,15 +351,12 @@ function OrderDetailDialog({
                 </div>
               </div>
             </div>
-
             {order.notes && (
               <p className="text-xs text-muted-foreground bg-slate-50 rounded-xl p-3">
                 <span className="font-medium text-slate-600">Notes: </span>
                 {order.notes}
               </p>
             )}
-
-            {/* Items */}
             <div className="flex flex-col gap-2">
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                 Items
@@ -376,7 +384,7 @@ function OrderDetailDialog({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold truncate">
-                        {product?.name ?? "Product"}
+                        {product?.name ?? "Deleted Product"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         ×{item.quantity} · Rs. {item.price.toLocaleString()}{" "}
@@ -398,8 +406,6 @@ function OrderDetailDialog({
                 </span>
               </div>
             </div>
-
-            {/* Actions */}
             <div className="flex flex-col gap-2 pt-1 border-t border-slate-100">
               {transitions.map((status) => (
                 <Button
@@ -416,13 +422,12 @@ function OrderDetailDialog({
                   {updatingStatus === status ? (
                     <Loader2 size={14} className="animate-spin" />
                   ) : (
-                    STATUS_CFG[status].icon
+                    <StatusIcon status={status} size={14} />
                   )}
                   Mark as {STATUS_CFG[status].label}
                 </Button>
               ))}
-
-              {canOtp && (
+              {order.status === "READY_FOR_COLLECTION" && (
                 <Button
                   onClick={() => setOtpOpen(true)}
                   className="h-10 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold gap-2"
@@ -431,8 +436,7 @@ function OrderDetailDialog({
                   Verify OTP & Collect
                 </Button>
               )}
-
-              {canDelete && (
+              {order.status === "CANCELLED" && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -447,8 +451,7 @@ function OrderDetailDialog({
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete this order?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This cannot be undone. Only cancelled orders can be
-                        deleted.
+                        This cannot be undone.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -469,7 +472,6 @@ function OrderDetailDialog({
           </div>
         </DialogContent>
       </Dialog>
-
       <OtpDialog
         open={otpOpen}
         onOpenChange={setOtpOpen}
@@ -483,9 +485,9 @@ function OrderDetailDialog({
   );
 }
 
-// Main Page
 export default function AdminOrdersPage() {
-  const { selectedStore } = useStore();
+  const { selectedStore, stores } = useStore();
+  const [localStore, setLocalStore] = useState<StoreOption | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -493,20 +495,31 @@ export default function AdminOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
-  const storeId = selectedStore?._id ?? "";
+  // Sync with header store selection on mount / when it changes externally
+  useEffect(() => {
+    if (selectedStore) setLocalStore(selectedStore);
+  }, [selectedStore]);
 
-  const load = useCallback(async () => {
+  const storeIdRef = useRef<string>("");
+  storeIdRef.current = localStore?._id ?? "";
+
+  const load = async (storeId: string) => {
     if (!storeId) return;
     setLoading(true);
     const res = await fetchStoreOrders(storeId);
     setLoading(false);
     if (res.success) setOrders(res.data ?? []);
     else toast.error(res.message ?? "Failed to load orders");
-  }, [storeId]);
+  };
 
   useEffect(() => {
-    load();
-  }, [load]);
+    const id = localStore?._id ?? "";
+    setOrders([]);
+    if (id) load(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [localStore?._id]);
+
+  const handleRefresh = () => load(storeIdRef.current);
 
   const filtered = orders.filter((o) => {
     const user = typeof o.userId === "object" ? o.userId : null;
@@ -526,25 +539,49 @@ export default function AdminOrdersPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Orders</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {selectedStore?.storeName ?? "Select a store to view orders"}
+            {localStore
+              ? localStore.storeName
+              : "Select a store to view orders"}
           </p>
         </div>
-        <Button
-          onClick={load}
-          disabled={loading || !storeId}
-          variant="outline"
-          className="rounded-xl gap-2"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Inline store selector */}
+          <Select
+            value={localStore?._id ?? ""}
+            onValueChange={(v) => {
+              const s = stores?.find((s: StoreOption) => s._id === v) ?? null;
+              setLocalStore(s);
+            }}
+          >
+            <SelectTrigger className="w-48 h-9 rounded-xl border-slate-200 gap-2">
+              <Store size={13} className="text-slate-400 flex-shrink-0" />
+              <SelectValue placeholder="Select store" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {stores?.map((s: StoreOption) => (
+                <SelectItem key={s._id} value={s._id}>
+                  {s.storeName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={handleRefresh}
+            disabled={loading || !localStore}
+            variant="outline"
+            className="rounded-xl gap-2"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* Status summary */}
       {!loading && orders.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {(Object.keys(STATUS_CFG) as OrderStatus[]).map((s) => (
@@ -567,7 +604,6 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search
@@ -596,12 +632,10 @@ export default function AdminOrdersPage() {
         </Select>
       </div>
 
-      {!storeId && (
+      {!localStore && (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-2">
-          <ShoppingBag size={40} className="text-slate-300" />
-          <p className="text-sm">
-            Select a store from the header to view orders.
-          </p>
+          <Store size={40} className="text-slate-300" />
+          <p className="text-sm">Select a store above to view orders.</p>
         </div>
       )}
 
@@ -614,7 +648,7 @@ export default function AdminOrdersPage() {
       )}
 
       {!loading &&
-        storeId &&
+        localStore &&
         (filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-muted-foreground gap-2">
             <Package size={40} className="text-slate-300" />
@@ -629,6 +663,14 @@ export default function AdminOrdersPage() {
             {filtered.map((order) => {
               const user =
                 typeof order.userId === "object" ? order.userId : null;
+              const sCfg = STATUS_CFG[order.status] ?? {
+                label: order.status,
+                color: "bg-slate-50 text-slate-600 border-slate-200",
+              };
+              const pCfg = PAYMENT_CFG[order.paymentStatus] ?? {
+                label: order.paymentStatus,
+                color: "bg-slate-50 text-slate-600 border-slate-200",
+              };
               return (
                 <button
                   key={order._id}
@@ -652,19 +694,19 @@ export default function AdminOrdersPage() {
                       <Badge
                         className={cn(
                           "text-[10px] px-1.5 py-0 h-4 border gap-1 font-medium",
-                          STATUS_CFG[order.status].color
+                          sCfg.color
                         )}
                       >
-                        {STATUS_CFG[order.status].icon}
-                        {STATUS_CFG[order.status].label}
+                        <StatusIcon status={order.status} size={10} />
+                        {sCfg.label}
                       </Badge>
                       <Badge
                         className={cn(
                           "text-[10px] px-1.5 py-0 h-4 border font-medium",
-                          PAYMENT_CFG[order.paymentStatus].color
+                          pCfg.color
                         )}
                       >
-                        {PAYMENT_CFG[order.paymentStatus].label}
+                        {pCfg.label}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
@@ -690,7 +732,7 @@ export default function AdminOrdersPage() {
         order={selectedOrder}
         open={detailOpen}
         onOpenChange={setDetailOpen}
-        onRefresh={load}
+        onRefresh={handleRefresh}
       />
     </div>
   );

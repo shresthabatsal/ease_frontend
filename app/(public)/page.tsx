@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useStore } from "@/context/StoreContext";
 import { useAuth } from "@/context/AuthContext";
 import ProductCard, { Category, Product } from "@/components/ProductCard";
@@ -21,9 +21,8 @@ import {
   handleGetProductsByStore,
 } from "@/lib/actions/public-action";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 15;
 
-// Ad Slider
 const AD_IMAGES = ["/ads/ad1.jpg", "/ads/ad2.jpg", "/ads/ad3.jpg"];
 
 function AdSlider() {
@@ -43,7 +42,6 @@ function AdSlider() {
 
   return (
     <div className="relative w-full overflow-hidden rounded-2xl bg-slate-100 aspect-[3/1] sm:aspect-[4/1] select-none">
-      {/* Slides */}
       {AD_IMAGES.map((src, i) => (
         <img
           key={src}
@@ -56,7 +54,6 @@ function AdSlider() {
         />
       ))}
 
-      {/* Fallback when images not yet added */}
       {AD_IMAGES.every((s) => !s) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-amber-100 to-amber-50">
           <p className="text-sm text-amber-600 font-medium">
@@ -65,7 +62,6 @@ function AdSlider() {
         </div>
       )}
 
-      {/* Prev/Next */}
       <button
         onClick={prev}
         className="absolute left-2 top-1/2 -translate-y-1/2 h-7 w-7 rounded-full bg-white/80 hover:bg-white flex items-center justify-center shadow transition-colors"
@@ -79,7 +75,6 @@ function AdSlider() {
         <ChevronRightIcon size={14} />
       </button>
 
-      {/* Dots */}
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
         {AD_IMAGES.map((_, i) => (
           <button
@@ -106,13 +101,22 @@ export default function HomePage() {
   const [loadingCats, setLoadingCats] = useState(true);
   const [loadingProds, setLoadingProds] = useState(true);
 
+  const storeCategories = useMemo(() => {
+    if (!selectedStore) return [];
+    const catIdsInStore = new Set(
+      allProducts.map((p) =>
+        typeof p.categoryId === "object" ? p.categoryId._id : p.categoryId
+      )
+    );
+    return categories.filter((c) => catIdsInStore.has(c._id));
+  }, [categories, allProducts, selectedStore]);
+
   const pagedProducts = allProducts.slice(
     (page - 1) * PAGE_SIZE,
     page * PAGE_SIZE
   );
   const totalPages = Math.ceil(allProducts.length / PAGE_SIZE);
 
-  // Load categories
   useEffect(() => {
     (async () => {
       setLoadingCats(true);
@@ -122,7 +126,6 @@ export default function HomePage() {
     })();
   }, []);
 
-  // Load products when selected store changes
   useEffect(() => {
     if (!selectedStore) {
       setLoadingProds(false);
@@ -137,9 +140,21 @@ export default function HomePage() {
     })();
   }, [selectedStore?._id]);
 
+  const paginationItems: { key: string; value: number | "…" }[] = [];
+  if (totalPages > 1) {
+    const pageNums = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+      (p) => p === 1 || p === totalPages || Math.abs(p - page) <= 1
+    );
+    pageNums.forEach((p, i) => {
+      if (i > 0 && p - pageNums[i - 1] > 1) {
+        paginationItems.push({ key: `ellipsis-${p}`, value: "…" });
+      }
+      paginationItems.push({ key: `page-${p}`, value: p });
+    });
+  }
+
   return (
     <div className="flex flex-col gap-8 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-      {/* Advertisement slider */}
       <AdSlider />
 
       {/* Categories */}
@@ -157,13 +172,13 @@ export default function HomePage() {
               <Skeleton key={i} className="h-32 rounded-2xl" />
             ))}
           </div>
-        ) : categories.length === 0 ? (
+        ) : storeCategories.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No categories available.
           </p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {categories.map((cat) => (
+            {storeCategories.map((cat) => (
               <CategoryCard
                 key={cat._id}
                 category={cat}
@@ -174,7 +189,7 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Products for you */}
+      {/* Products */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <PackageOpen size={15} className="text-amber-500" />
@@ -209,7 +224,6 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-1.5 mt-8">
                 <Button
@@ -222,40 +236,30 @@ export default function HomePage() {
                   <ChevronLeft size={15} />
                 </Button>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(
-                    (p) =>
-                      p === 1 || p === totalPages || Math.abs(p - page) <= 1
+                {paginationItems.map(({ key, value }) =>
+                  value === "…" ? (
+                    <span
+                      key={key}
+                      className="px-1 text-muted-foreground text-sm"
+                    >
+                      …
+                    </span>
+                  ) : (
+                    <Button
+                      key={key}
+                      variant={page === value ? "default" : "outline"}
+                      size="icon"
+                      className={cn(
+                        "h-9 w-9 rounded-xl text-sm",
+                        page === value &&
+                          "bg-[#F6B60D] hover:bg-amber-500 text-black border-transparent shadow-none"
+                      )}
+                      onClick={() => setPage(value)}
+                    >
+                      {value}
+                    </Button>
                   )
-                  .reduce<(number | "…")[]>((acc, p, i, arr) => {
-                    if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("…");
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((p, i) =>
-                    p === "…" ? (
-                      <span
-                        key={i}
-                        className="px-1 text-muted-foreground text-sm"
-                      >
-                        …
-                      </span>
-                    ) : (
-                      <Button
-                        key={p}
-                        variant={page === p ? "default" : "outline"}
-                        size="icon"
-                        className={cn(
-                          "h-9 w-9 rounded-xl text-sm",
-                          page === p &&
-                            "bg-[#F6B60D] hover:bg-amber-500 text-black border-transparent shadow-none"
-                        )}
-                        onClick={() => setPage(p as number)}
-                      >
-                        {p}
-                      </Button>
-                    )
-                  )}
+                )}
 
                 <Button
                   variant="outline"
