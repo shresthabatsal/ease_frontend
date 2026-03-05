@@ -48,6 +48,7 @@ import {
   Eye,
   EyeOff,
   AlertCircle,
+  TicketCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -168,14 +169,12 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
   const [editValue, setEditValue] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Change password dialog
   const [pwDialog, setPwDialog] = useState(false);
   const [pwForm, setPwForm] = useState({ next: "", confirm: "" });
   const [pwShow, setPwShow] = useState({ next: false, confirm: false });
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState("");
 
-  // Load Profile
   useEffect(() => {
     (async () => {
       const res = await handleGetProfile();
@@ -185,7 +184,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
     })();
   }, []);
 
-  // Avatar upload
   const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -230,7 +228,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
     setSaving(false);
   };
 
-  // Change password
   const openPwDialog = () => {
     setPwForm({ next: "", confirm: "" });
     setPwShow({ next: false, confirm: false });
@@ -244,9 +241,7 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
       return setPwError("New password must be at least 6 characters.");
     if (pwForm.next !== pwForm.confirm)
       return setPwError("Passwords do not match.");
-
     setPwSaving(true);
-
     const res = await handleUpdateProfile({ password: pwForm.next });
     if (res.success) {
       setPwDialog(false);
@@ -274,154 +269,158 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
 
   if (loading) {
     return (
-      <>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <Loader2 className="animate-spin text-amber-500" size={32} />
-        </div>
-      </>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="animate-spin text-amber-500" size={32} />
+      </div>
     );
   }
 
-  const pageContent = (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          My Profile
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Manage your personal information and account settings.
-        </p>
-      </div>
-
-      {/* Avatar card */}
-      <Card>
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex items-center gap-5">
-            <div className="relative flex-shrink-0">
-              <Avatar className="h-20 w-20 ring-2 ring-border">
-                <AvatarImage src={avatarSrc} alt={profile?.fullName} />
-                <AvatarFallback className="bg-gradient-to-br from-amber-400 to-amber-600 text-white text-2xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingPic}
-                className="absolute bottom-0 right-0 w-7 h-7 bg-[#F6B60D] hover:bg-amber-500 text-black rounded-full flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
-              >
-                {uploadingPic ? (
-                  <Loader2 size={12} className="animate-spin" />
-                ) : (
-                  <Camera size={12} />
-                )}
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={onAvatarChange}
-              />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold truncate">
-                {profile?.fullName}
-              </h2>
-              <p className="text-sm text-muted-foreground truncate">
-                {profile?.email}
-              </p>
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "mt-2 text-xs",
-                  profile?.role === "ADMIN" &&
-                    "bg-amber-100 text-amber-700 border border-amber-200"
-                )}
-              >
-                {profile?.role === "ADMIN" ? (
-                  <span className="flex items-center gap-1">
-                    <Shield size={10} /> Admin
-                  </span>
-                ) : (
-                  "User"
-                )}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Profile details card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Profile Details</CardTitle>
-          <CardDescription>Click any field to edit</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <ProfileField
-            icon={<User size={15} />}
-            label="Full Name"
-            value={profile?.fullName ?? ""}
-            fieldKey="fullName"
-            onEdit={openEdit}
-          />
-          <ProfileField
-            icon={<Mail size={15} />}
-            label="Email Address"
-            value={profile?.email ?? ""}
-            fieldKey="email"
-            onEdit={openEdit}
-          />
-          <ProfileField
-            icon={<Phone size={15} />}
-            label="Phone Number"
-            value={profile?.phoneNumber ?? ""}
-            fieldKey="phoneNumber"
-            onEdit={openEdit}
-          />
-          <PasswordField onOpen={openPwDialog} />
-        </CardContent>
-      </Card>
-
-      {/* Actions card */}
-      <Card>
-        <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-3">
-          {isAdmin && context === "user" && (
-            <Button
-              onClick={() => router.push("/admin")}
-              className="flex-1 gap-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold"
-            >
-              <LayoutDashboard size={15} />
-              Switch to Admin Panel
-            </Button>
-          )}
-          {isAdmin && context === "admin" && (
-            <Button
-              onClick={() => router.push("/")}
-              className="flex-1 gap-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold"
-            >
-              <Home size={15} />
-              Switch to User Panel
-            </Button>
-          )}
-          <Button
-            onClick={() => setLogoutDialog(true)}
-            variant="outline"
-            className="flex-1 gap-2 border-destructive/30 text-destructive hover:bg-destructive/5 rounded-lg font-semibold"
-          >
-            <LogOut size={15} />
-            Logout
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
   return (
     <>
-      {pageContent}
+      <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8 max-w-2xl mx-auto w-full">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            My Profile
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Manage your personal information and account settings.
+          </p>
+        </div>
 
+        {/* Avatar card */}
+        <Card>
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center gap-5">
+              <div className="relative flex-shrink-0">
+                <Avatar className="h-20 w-20 ring-2 ring-border">
+                  <AvatarImage src={avatarSrc} alt={profile?.fullName} />
+                  <AvatarFallback className="bg-gradient-to-br from-amber-400 to-amber-600 text-white text-2xl font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingPic}
+                  className="absolute bottom-0 right-0 w-7 h-7 bg-[#F6B60D] hover:bg-amber-500 text-black rounded-full flex items-center justify-center shadow-md transition-colors disabled:opacity-60"
+                >
+                  {uploadingPic ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Camera size={12} />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onAvatarChange}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-semibold truncate">
+                  {profile?.fullName}
+                </h2>
+                <p className="text-sm text-muted-foreground truncate">
+                  {profile?.email}
+                </p>
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "mt-2 text-xs",
+                    profile?.role === "ADMIN" &&
+                      "bg-amber-100 text-amber-700 border border-amber-200"
+                  )}
+                >
+                  {profile?.role === "ADMIN" ? (
+                    <span className="flex items-center gap-1">
+                      <Shield size={10} /> Admin
+                    </span>
+                  ) : (
+                    "User"
+                  )}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Profile details card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Details</CardTitle>
+            <CardDescription>Click any field to edit</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <ProfileField
+              icon={<User size={15} />}
+              label="Full Name"
+              value={profile?.fullName ?? ""}
+              fieldKey="fullName"
+              onEdit={openEdit}
+            />
+            <ProfileField
+              icon={<Mail size={15} />}
+              label="Email Address"
+              value={profile?.email ?? ""}
+              fieldKey="email"
+              onEdit={openEdit}
+            />
+            <ProfileField
+              icon={<Phone size={15} />}
+              label="Phone Number"
+              value={profile?.phoneNumber ?? ""}
+              fieldKey="phoneNumber"
+              onEdit={openEdit}
+            />
+            <PasswordField onOpen={openPwDialog} />
+          </CardContent>
+        </Card>
+
+        {/* Actions card */}
+        <Card>
+          <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-3">
+            {isAdmin && context === "user" && (
+              <Button
+                onClick={() => router.push("/admin")}
+                className="flex-1 gap-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold"
+              >
+                <LayoutDashboard size={15} />
+                Switch to Admin Panel
+              </Button>
+            )}
+            {isAdmin && context === "admin" && (
+              <Button
+                onClick={() => router.push("/")}
+                className="flex-1 gap-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold"
+              >
+                <Home size={15} />
+                Switch to User Panel
+              </Button>
+            )}
+            {context === "user" && (
+              <Button
+                onClick={() => router.push("/support")}
+                variant="outline"
+                className="flex-1 gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 rounded-lg font-semibold"
+              >
+                <TicketCheck size={15} />
+                Raise a Ticket
+              </Button>
+            )}
+            <Button
+              onClick={() => setLogoutDialog(true)}
+              variant="outline"
+              className="flex-1 gap-2 border-destructive/30 text-destructive hover:bg-destructive/5 rounded-lg font-semibold"
+            >
+              <LogOut size={15} />
+              Logout
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Edit field dialog */}
       <Dialog
         open={editDialog.open}
         onOpenChange={(o) => setEditDialog((d) => ({ ...d, open: o }))}
@@ -473,7 +472,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
               Change Password
             </DialogTitle>
           </DialogHeader>
-
           <div className="space-y-4 py-2">
             {(["next", "confirm"] as const).map((key) => {
               const labels = {
@@ -514,7 +512,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
                 </div>
               );
             })}
-
             {pwError && (
               <p className="flex items-center gap-1.5 text-sm text-destructive">
                 <AlertCircle size={14} />
@@ -522,7 +519,6 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
               </p>
             )}
           </div>
-
           <DialogFooter className="gap-2">
             <Button
               variant="outline"
@@ -546,6 +542,7 @@ export default function ProfilePage({ context = "user" }: ProfilePageProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
       {/* Logout confirmation */}
       <AlertDialog open={logoutDialog} onOpenChange={setLogoutDialog}>
         <AlertDialogContent className="rounded-xl sm:max-w-sm">

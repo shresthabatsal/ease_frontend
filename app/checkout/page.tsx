@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useStore } from "@/context/StoreContext";
-import { useCart, BackendCartItem } from "@/context/CartContext";
+import { useCart } from "@/context/CartContext";
 import { createOrder, buyNow } from "@/lib/api/order";
 import { getProductById } from "@/lib/api/public";
 import PaymentReceiptDialog from "@/components/PaymentReceiptDialog";
@@ -43,12 +43,34 @@ function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
+function nowTimeStr() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(
+    now.getMinutes()
+  ).padStart(2, "0")}`;
+}
+
+function isInFuture(date: string, time: string): boolean {
+  if (!date || !time) return false;
+  const chosen = new Date(`${date}T${time}`);
+  return chosen > new Date();
+}
+
+function minTimeForDate(date: string): string {
+  if (date !== todayStr()) return "00:00";
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + 5);
+  return `${String(now.getHours()).padStart(2, "0")}:${String(
+    now.getMinutes()
+  ).padStart(2, "0")}`;
+}
+
 function CheckoutInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated } = useAuth();
   const { selectedStore } = useStore();
-  const { items: cartItems, clearCart, itemCount } = useCart();
+  const { items: cartItems, clearCart } = useCart();
 
   const mode = searchParams.get("mode") ?? "cart";
   const buyNowProductId = searchParams.get("productId") ?? "";
@@ -63,6 +85,7 @@ function CheckoutInner() {
   const [pickupTime, setPickupTime] = useState("");
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
+  const [timeError, setTimeError] = useState("");
 
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedTotal, setPlacedTotal] = useState(0);
@@ -110,6 +133,26 @@ function CheckoutInner() {
     })();
   }, [mode, buyNowProductId, buyNowQuantity, isAuthenticated, cartItems]);
 
+  // Clear time error whenever date or time changes, re-validate if both filled
+  useEffect(() => {
+    if (!pickupDate || !pickupTime) {
+      setTimeError("");
+      return;
+    }
+    if (!isInFuture(pickupDate, pickupTime)) {
+      setTimeError("Pickup time must be in the future.");
+    } else {
+      setTimeError("");
+    }
+  }, [pickupDate, pickupTime]);
+
+  const handleDateChange = (date: string) => {
+    setPickupDate(date);
+    if (pickupTime && date === todayStr() && pickupTime <= nowTimeStr()) {
+      setPickupTime("");
+    }
+  };
+
   const totalAmount = orderItems.reduce(
     (sum, i) => sum + i.product.price * i.quantity,
     0
@@ -122,6 +165,10 @@ function CheckoutInner() {
     }
     if (!pickupTime) {
       toast.error("Please select a pickup time");
+      return false;
+    }
+    if (!isInFuture(pickupDate, pickupTime)) {
+      toast.error("Pickup date and time must be in the future");
       return false;
     }
     if (orderItems.length === 0) {
@@ -141,16 +188,14 @@ function CheckoutInner() {
     try {
       let res;
       if (mode === "buynow") {
-        const buyNowPayload = {
+        res = await buyNow({
           productId: buyNowProductId,
           quantity: buyNowQuantity,
           storeId,
           pickupDate,
           pickupTime,
           notes: notes || undefined,
-        };
-        console.log("[Checkout] buyNow payload:", buyNowPayload);
-        res = await buyNow(buyNowPayload);
+        });
       } else {
         res = await createOrder({
           storeId,
@@ -160,7 +205,6 @@ function CheckoutInner() {
         });
       }
 
-      console.log("[Checkout] API response:", JSON.stringify(res));
       if (res.success !== false && res.data?._id) {
         setPlacedOrderId(res.data._id);
         setPlacedTotal(res.data.totalAmount ?? totalAmount);
@@ -175,16 +219,18 @@ function CheckoutInner() {
         toast.error(msg);
       }
     } catch (e: any) {
-      const msg =
-        e?.response?.data?.message || e?.message || "Something went wrong";
-      toast.error(msg);
-      console.error("[Checkout] error:", e?.response?.data ?? e);
+      toast.error(
+        e?.response?.data?.message || e?.message || "Something went wrong"
+      );
     } finally {
       setPlacing(false);
     }
   };
 
   if (!isAuthenticated) return null;
+
+  const isToday = pickupDate === todayStr();
+  const minTime = minTimeForDate(pickupDate);
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
@@ -244,7 +290,7 @@ function CheckoutInner() {
               type="date"
               min={todayStr()}
               value={pickupDate}
-              onChange={(e) => setPickupDate(e.target.value)}
+              onChange={(e) => handleDateChange(e.target.value)}
               className="h-10 rounded-xl border-slate-200 focus-visible:ring-amber-400"
             />
           </div>
@@ -261,13 +307,27 @@ function CheckoutInner() {
             <Input
               id="pickupTime"
               type="time"
+              min={isToday ? minTime : undefined}
               value={pickupTime}
               onChange={(e) => setPickupTime(e.target.value)}
-              className="h-10 rounded-xl border-slate-200 focus-visible:ring-amber-400"
+              className={`h-10 rounded-xl border-slate-200 focus-visible:ring-amber-400 ${
+                timeError ? "border-red-300 focus-visible:ring-red-400" : ""
+              }`}
             />
-            <p className="text-xs text-muted-foreground">
-              24-hour format (HH:MM)
-            </p>
+            {timeError ? (
+              <p className="text-xs text-red-500 flex items-center gap-1">
+                <AlertCircle size={11} />
+                {timeError}
+              </p>
+            ) : isToday ? (
+              <p className="text-xs text-muted-foreground">
+                Must be after {minTime} (current time + 5 min)
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                24-hour format (HH:MM)
+              </p>
+            )}
           </div>
 
           {/* Notes */}
@@ -310,7 +370,7 @@ function CheckoutInner() {
           </div>
         </div>
 
-        {/* ── Right: order summary ── */}
+        {/* Order summary */}
         <div className="flex flex-col gap-4 p-4 rounded-2xl border border-slate-100 bg-white sticky top-24">
           <div className="flex items-center gap-2">
             <ShoppingBag size={15} className="text-amber-500" />
@@ -372,7 +432,9 @@ function CheckoutInner() {
 
           <Button
             onClick={handlePlaceOrder}
-            disabled={placing || loadingItems || orderItems.length === 0}
+            disabled={
+              placing || loadingItems || orderItems.length === 0 || !!timeError
+            }
             className="h-11 rounded-xl bg-[#F6B60D] hover:bg-amber-500 text-black font-semibold shadow-none gap-2"
           >
             {placing ? (
