@@ -32,6 +32,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Product, resolveImg } from "@/components/ProductCard";
+import type { IRating, ProductRatingsResponse } from "@/lib/api/rating";
+import {
+  handleGetProductRatings,
+  handleCreateRating,
+  handleUpdateRating,
+  handleDeleteRating,
+} from "@/lib/actions/rating-action";
 import {
   ShoppingCart,
   Minus,
@@ -50,7 +57,6 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createRating, deleteRating, getProductRatings, IRating, ProductRatingsResponse, updateRating } from "@/lib/api/rating";
 
 // Star display
 function StarDisplay({ value, size = 14 }: { value: number; size?: number }) {
@@ -126,23 +132,15 @@ function ReviewForm({
 }) {
   const [rating, setRating] = useState(initial?.rating ?? 0);
   const [review, setReview] = useState(initial?.review ?? "");
-
   const isEdit = !!initial;
   const canSubmit = rating > 0 && review.trim().length > 0 && !submitting;
-
-  const handleSubmit = async () => {
-    if (!canSubmit) return;
-    await onSubmit(rating, review.trim());
-  };
 
   return (
     <div className="flex flex-col gap-3 p-4 rounded-2xl border border-slate-200 bg-slate-50">
       <p className="text-sm font-semibold text-slate-700">
         {isEdit ? "Edit your review" : "Write a review"}
       </p>
-
       <StarPicker value={rating} onChange={setRating} />
-
       <Textarea
         value={review}
         onChange={(e) => setReview(e.target.value)}
@@ -169,7 +167,7 @@ function ReviewForm({
           )}
           <Button
             size="sm"
-            onClick={handleSubmit}
+            onClick={() => canSubmit && onSubmit(rating, review.trim())}
             disabled={!canSubmit}
             className="rounded-xl h-8 px-4 bg-amber-400 hover:bg-amber-500 text-black font-semibold gap-1.5 shadow-none"
           >
@@ -189,10 +187,8 @@ function RatingSummary({ data }: { data: ProductRatingsResponse }) {
     star: s,
     count: ratings.filter((r) => r.rating === s).length,
   }));
-
   return (
     <div className="flex items-center gap-6 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-      {/* Big average */}
       <div className="flex flex-col items-center gap-1 flex-shrink-0">
         <span className="text-4xl font-bold text-slate-900">
           {totalRatings > 0 ? averageRating.toFixed(1) : "—"}
@@ -202,8 +198,6 @@ function RatingSummary({ data }: { data: ProductRatingsResponse }) {
           {totalRatings} {totalRatings === 1 ? "review" : "reviews"}
         </span>
       </div>
-
-      {/* Bar chart */}
       <div className="flex-1 flex flex-col gap-1">
         {counts.map(({ star, count }) => (
           <div key={star} className="flex items-center gap-2">
@@ -288,7 +282,6 @@ function ReviewCard({
             </p>
           </div>
         </div>
-
         <div className="flex items-center gap-1 flex-shrink-0">
           <StarDisplay value={rating.rating} size={12} />
           {isOwn && (
@@ -352,7 +345,6 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [addingToCart, setAddingToCart] = useState(false);
 
-  // Ratings state
   const [ratingsData, setRatingsData] = useState<ProductRatingsResponse | null>(
     null
   );
@@ -376,18 +368,13 @@ export default function ProductDetailPage() {
     })();
   }, [productId]);
 
-  // Load ratings
+  // Load ratings via action
   const loadRatings = useCallback(async () => {
     if (!productId) return;
     setRatingsLoading(true);
-    try {
-      const data = await getProductRatings(productId);
-      setRatingsData(data);
-    } catch {
-      // non-fatal
-    } finally {
-      setRatingsLoading(false);
-    }
+    const res = await handleGetProductRatings(productId);
+    if (res.success) setRatingsData(res.data ?? null);
+    setRatingsLoading(false);
   }, [productId]);
 
   useEffect(() => {
@@ -395,48 +382,39 @@ export default function ProductDetailPage() {
   }, [loadRatings]);
 
   const currentUserId = user?._id as string | undefined;
-
   const myRating = ratingsData?.ratings.find((r) => {
     const uid = typeof r.userId === "object" ? r.userId._id : r.userId;
     return uid === currentUserId;
   });
 
-  const handleCreateRating = async (rating: number, review: string) => {
+  const onCreateRating = async (rating: number, review: string) => {
     setSubmitting(true);
-    try {
-      await createRating(productId, rating, review);
-      toast.success("Review submitted!");
+    const res = await handleCreateRating(productId, rating, review);
+    if (res.success) {
+      toast.success(res.message);
       await loadRatings();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Failed to submit review");
-    } finally {
-      setSubmitting(false);
-    }
+    } else toast.error(res.message);
+    setSubmitting(false);
   };
 
-  const handleUpdateRating = async (rating: number, review: string) => {
+  const onUpdateRating = async (rating: number, review: string) => {
     if (!editingRating) return;
     setSubmitting(true);
-    try {
-      await updateRating(editingRating._id, rating, review);
-      toast.success("Review updated!");
+    const res = await handleUpdateRating(editingRating._id, rating, review);
+    if (res.success) {
+      toast.success(res.message);
       setEditingRating(null);
       await loadRatings();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Failed to update review");
-    } finally {
-      setSubmitting(false);
-    }
+    } else toast.error(res.message);
+    setSubmitting(false);
   };
 
-  const handleDeleteRating = async (ratingId: string) => {
-    try {
-      await deleteRating(ratingId);
-      toast.success("Review deleted");
+  const onDeleteRating = async (ratingId: string) => {
+    const res = await handleDeleteRating(ratingId);
+    if (res.success) {
+      toast.success(res.message);
       await loadRatings();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Failed to delete review");
-    }
+    } else toast.error(res.message);
   };
 
   const imgSrc = resolveImg(product?.productImage);
@@ -474,7 +452,7 @@ export default function ProductDetailPage() {
       await addToCart(product._id, quantity);
       toast.success(`${product.name} added to cart`);
     } catch {
-      // error toast handled in CartContext
+      /* handled in CartContext */
     } finally {
       setAddingToCart(false);
     }
@@ -523,7 +501,7 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-8">
-      {/* ── Breadcrumb ── */}
+      {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -556,7 +534,7 @@ export default function ProductDetailPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      {/* ── Product ── */}
+      {/* Product grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {/* Image */}
         <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-50 border border-slate-100">
@@ -608,7 +586,6 @@ export default function ProductDetailPage() {
             {product.name}
           </h1>
 
-          {/* Average rating inline */}
           {ratingsData && ratingsData.totalRatings > 0 && (
             <div className="flex items-center gap-2">
               <StarDisplay value={ratingsData.averageRating} size={14} />
@@ -726,7 +703,7 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* ── Ratings & Reviews ── */}
+      {/* Ratings & Reviews */}
       <div className="flex flex-col gap-5 pt-2 border-t border-slate-100">
         <div className="flex items-center gap-2">
           <MessageSquare size={16} className="text-amber-500" />
@@ -735,7 +712,6 @@ export default function ProductDetailPage() {
           </h2>
         </div>
 
-        {/* Summary */}
         {ratingsLoading ? (
           <Skeleton className="h-24 rounded-2xl" />
         ) : ratingsData && ratingsData.totalRatings > 0 ? (
@@ -746,27 +722,20 @@ export default function ProductDetailPage() {
           </p>
         )}
 
-        {/* Write / edit review — logged in users only */}
-        {isAuthenticated && (
-          <>
-            {editingRating ? (
-              <ReviewForm
-                initial={{
-                  rating: editingRating.rating,
-                  review: editingRating.review,
-                }}
-                onSubmit={handleUpdateRating}
-                onCancel={() => setEditingRating(null)}
-                submitting={submitting}
-              />
-            ) : !myRating ? (
-              <ReviewForm
-                onSubmit={handleCreateRating}
-                submitting={submitting}
-              />
-            ) : null}
-          </>
-        )}
+        {isAuthenticated &&
+          (editingRating ? (
+            <ReviewForm
+              initial={{
+                rating: editingRating.rating,
+                review: editingRating.review,
+              }}
+              onSubmit={onUpdateRating}
+              onCancel={() => setEditingRating(null)}
+              submitting={submitting}
+            />
+          ) : !myRating ? (
+            <ReviewForm onSubmit={onCreateRating} submitting={submitting} />
+          ) : null)}
 
         {!isAuthenticated && (
           <p className="text-sm text-slate-500">
@@ -780,7 +749,6 @@ export default function ProductDetailPage() {
           </p>
         )}
 
-        {/* Review list */}
         {ratingsData && ratingsData.ratings.length > 0 && (
           <div className="flex flex-col gap-3">
             {ratingsData.ratings.map((r) => (
@@ -789,7 +757,7 @@ export default function ProductDetailPage() {
                 rating={r}
                 currentUserId={currentUserId}
                 onEdit={(r) => setEditingRating(r)}
-                onDelete={handleDeleteRating}
+                onDelete={onDeleteRating}
               />
             ))}
           </div>

@@ -2,18 +2,19 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
-import {
-  createTicket,
-  getMyTickets,
-  getTicketById,
-  getMessages,
-  sendMessage,
-  closeTicket,
+import type {
   ITicket,
   IMessage,
   TicketCategory,
   TicketPriority,
 } from "@/lib/api/support";
+import {
+  handleCreateTicket,
+  handleGetMyTickets,
+  handleCloseTicket,
+  handleSendMessage,
+  handleGetMessages,
+} from "@/lib/actions/support-action";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Helpers
 const STATUS_CFG = {
   OPEN: { label: "Open", color: "bg-blue-50 text-blue-700 border-blue-200" },
   IN_PROGRESS: {
@@ -134,20 +134,19 @@ function NewTicketDialog({
       return;
     }
     setSubmitting(true);
-    try {
-      const ticket = await createTicket({
-        title: title.trim(),
-        description: description.trim(),
-        category,
-        priority,
-      });
-      toast.success("Support ticket created");
-      onCreated(ticket);
+    const res = await handleCreateTicket({
+      title: title.trim(),
+      description: description.trim(),
+      category,
+      priority,
+    });
+    setSubmitting(false);
+    if (res.success) {
+      toast.success(res.message ?? "Support ticket created");
+      onCreated(res.data);
       onOpenChange(false);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Failed to create ticket");
-    } finally {
-      setSubmitting(false);
+    } else {
+      toast.error(res.message);
     }
   };
 
@@ -247,11 +246,13 @@ function ChatView({
   currentUserId,
   onBack,
   onTicketUpdate,
+  onNewTicket,
 }: {
   ticket: ITicket;
   currentUserId: string;
   onBack: () => void;
   onTicketUpdate: (t: ITicket) => void;
+  onNewTicket: () => void;
 }) {
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -259,26 +260,16 @@ function ChatView({
   const [sending, setSending] = useState(false);
   const [closeDialog, setCloseDialog] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const socketRef = useRef<any>(null);
 
   const loadMessages = useCallback(async () => {
-    try {
-      const msgs = await getMessages(ticket._id);
-      setMessages(msgs);
-    } catch {
-      /* silent */
-    }
+    const res = await handleGetMessages(ticket._id);
+    if (res.success) setMessages(res.data ?? []);
   }, [ticket._id]);
 
   useEffect(() => {
     setLoading(true);
     loadMessages().finally(() => setLoading(false));
-
-    // Polling fallback
-    pollRef.current = setInterval(loadMessages, 5000);
-
-    // WebSocket for real-time
     const wsUrl =
       process.env.NEXT_PUBLIC_WS_URL ??
       process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -296,7 +287,6 @@ function ChatView({
       .catch(() => {});
 
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
       socketRef.current?.disconnect();
     };
   }, [ticket._id, currentUserId, loadMessages]);
@@ -310,36 +300,41 @@ function ChatView({
     if (!msg || sending) return;
     setSending(true);
     setText("");
-    try {
-      const newMsg = await sendMessage(ticket._id, msg);
-      setMessages((prev) => [...prev, newMsg]);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Failed to send message");
+    const res = await handleSendMessage(ticket._id, msg);
+    setSending(false);
+    if (res.success) {
+      setMessages((prev) => [...prev, res.data]);
+    } else {
+      toast.error(res.message);
       setText(msg);
-    } finally {
-      setSending(false);
     }
   };
 
   const handleClose = async () => {
-    try {
-      const updated = await closeTicket(ticket._id);
-      toast.success("Ticket closed");
-      onTicketUpdate(updated);
+    const res = await handleCloseTicket(ticket._id);
+    if (res.success) {
+      toast.success(res.message ?? "Ticket closed");
+      onTicketUpdate(res.data);
       setCloseDialog(false);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Failed to close ticket");
+    } else {
+      toast.error(res.message);
     }
   };
 
   const isClosed = ticket.status === "CLOSED";
   const adminUser = typeof ticket.adminId === "object" ? ticket.adminId : null;
-  const statusCfg = STATUS_CFG[ticket.status];
-  const priorityCfg = PRIORITY_CFG[ticket.priority];
+  const statusCfg = STATUS_CFG[ticket.status] ?? {
+    label: ticket.status,
+    color: "bg-slate-100 text-slate-500 border-slate-200",
+  };
+  const priorityCfg = PRIORITY_CFG[ticket.priority] ?? {
+    label: ticket.priority,
+    color: "bg-slate-50 text-slate-500",
+  };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat header */}
+      {/* Header */}
       <div className="flex items-start gap-3 p-4 border-b border-slate-100 flex-shrink-0">
         <Button
           variant="ghost"
@@ -367,7 +362,7 @@ function ChatView({
               <span className="ml-2">
                 · Assigned to{" "}
                 <span className="font-medium text-slate-700">
-                  {adminUser.fullName}
+                  {(adminUser as any).fullName}
                 </span>
               </span>
             )}
@@ -390,7 +385,6 @@ function ChatView({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-        {/* Original description */}
         <div className="flex flex-col gap-1 p-3 rounded-2xl bg-slate-50 border border-slate-100">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
             Issue description
@@ -426,7 +420,6 @@ function ChatView({
                   isMe ? "flex-row-reverse" : "flex-row"
                 )}
               >
-                {/* Avatar */}
                 <div
                   className={cn(
                     "h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5",
@@ -437,7 +430,6 @@ function ChatView({
                 >
                   {isAdmin ? <Shield size={12} /> : <User size={12} />}
                 </div>
-                {/* Bubble */}
                 <div
                   className={cn(
                     "flex flex-col gap-0.5 max-w-[75%]",
@@ -504,7 +496,7 @@ function ChatView({
           <Button
             variant="link"
             className="text-xs p-0 h-auto text-amber-600"
-            onClick={() => {}}
+            onClick={onNewTicket}
           >
             Open a new ticket
           </Button>{" "}
@@ -537,7 +529,7 @@ function ChatView({
   );
 }
 
-// Ticket list item
+// ── Ticket Row ────────────────────────────────────────────────────────────────
 function TicketRow({
   ticket,
   active,
@@ -547,8 +539,14 @@ function TicketRow({
   active: boolean;
   onClick: () => void;
 }) {
-  const s = STATUS_CFG[ticket.status];
-  const p = PRIORITY_CFG[ticket.priority];
+  const s = STATUS_CFG[ticket.status] ?? {
+    label: ticket.status,
+    color: "bg-slate-100 text-slate-500 border-slate-200",
+  };
+  const p = PRIORITY_CFG[ticket.priority] ?? {
+    label: ticket.priority,
+    color: "bg-slate-50 text-slate-500",
+  };
   return (
     <button
       onClick={onClick}
@@ -580,11 +578,9 @@ function TicketRow({
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <p className="text-sm font-semibold text-slate-800 truncate">
-            {ticket.title}
-          </p>
-        </div>
+        <p className="text-sm font-semibold text-slate-800 truncate">
+          {ticket.title}
+        </p>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">
           {CATEGORY_LABELS[ticket.category]}
         </p>
@@ -614,7 +610,6 @@ function TicketRow({
   );
 }
 
-// Main Page
 export default function UserSupportPage() {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<ITicket[]>([]);
@@ -623,14 +618,9 @@ export default function UserSupportPage() {
   const [newDialog, setNewDialog] = useState(false);
 
   const load = useCallback(async () => {
-    try {
-      const t = await getMyTickets();
-      setTickets(t);
-    } catch {
-      /* silent */
-    } finally {
-      setLoading(false);
-    }
+    const res = await handleGetMyTickets();
+    if (res.success) setTickets(res.data ?? []);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -654,7 +644,6 @@ export default function UserSupportPage() {
   return (
     <>
       <div className="max-w-5xl mx-auto p-4 sm:p-6 flex flex-col gap-4 h-[calc(100vh-80px)]">
-        {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
             <h1 className="text-xl font-bold tracking-tight">Support</h1>
@@ -671,7 +660,6 @@ export default function UserSupportPage() {
           </Button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 flex gap-4 overflow-hidden rounded-2xl border border-slate-100">
           {/* Ticket list */}
           <div
@@ -730,6 +718,10 @@ export default function UserSupportPage() {
                 currentUserId={currentUserId}
                 onBack={() => setSelected(null)}
                 onTicketUpdate={handleTicketUpdate}
+                onNewTicket={() => {
+                  setSelected(null);
+                  setNewDialog(true);
+                }}
               />
             </div>
           ) : (

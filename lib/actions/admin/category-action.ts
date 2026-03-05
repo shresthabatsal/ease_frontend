@@ -1,21 +1,16 @@
 "use server";
 
+import { createCategory, createSubcategory, deleteCategory, deleteSubcategory, updateCategory, updateSubcategory } from "@/lib/api/admin/category";
 import {
   getAllCategories,
   getCategoryById,
-  createCategory,
-  updateCategory,
-  deleteCategory,
   getAllSubcategories,
   getSubcategoryById,
-  getSubcategoriesByCategory,
-  createSubcategory,
-  updateSubcategory,
-  deleteSubcategory,
+  getSubcategoriesByCategory
 } from "@/lib/api/category";
 import { revalidatePath } from "next/cache";
 
-// ── CATEGORIES ────────────────────────────────────────────────────────────
+// CATEGORIES
 
 export const handleGetAllCategories = async () => {
   try {
@@ -88,7 +83,7 @@ export const handleDeleteCategory = async (id: string) => {
   }
 };
 
-// ── SUBCATEGORIES ─────────────────────────────────────────────────────────
+// SUBCATEGORIES
 
 export const handleGetAllSubcategories = async () => {
   try {

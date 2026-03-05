@@ -23,7 +23,7 @@ import {
 
 const PAGE_SIZE = 15;
 
-const AD_IMAGES = ["/ads/ad1.jpg", "/ads/ad2.jpg", "/ads/ad3.jpg"];
+const AD_IMAGES = ["/ads/ad1.png", "/ads/ad2.png", "/ads/ad3.png"];
 
 function AdSlider() {
   const [current, setCurrent] = useState(0);

@@ -1,17 +1,16 @@
 "use server";
 
+import { updateProduct, deleteProduct } from "@/lib/api/admin/product";
 import {
   getAllProducts,
   getProductById,
   getProductsByStore,
   createProduct,
-  updateProduct,
-  deleteProduct,
-  getAllStores,
   getAllCategories,
   getAllSubcategories,
   getSubcategoriesByCategory,
 } from "@/lib/api/product";
+import { getAllStores } from "@/lib/api/public";
 import { revalidatePath } from "next/cache";
 
 // Get all products
