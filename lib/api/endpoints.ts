@@ -55,22 +55,19 @@ export const API = {
       DELETE: (id: string) => `/api/admin/subcategories/${id}`,
     },
 
-    // Admin order router is mounted at /api/admin
     ORDERS: {
-      GET_BY_STORE: (storeId: string) => `/api/admin/stores/${storeId}/orders`,
-      GET_ONE: (orderId: string) => `/api/admin/${orderId}`,
+      GET_BY_STORE: (storeId: string) => `/api/admin/orders/stores/${storeId}`,
+      GET_ONE: (orderId: string) => `/api/admin/orders/${orderId}`,
       UPDATE_STATUS: (orderId: string) => `/api/admin/orders/${orderId}/status`,
       VERIFY_OTP: (orderId: string) =>
         `/api/admin/orders/${orderId}/verify-otp`,
       DELETE: (orderId: string) => `/api/admin/orders/${orderId}`,
     },
 
-    // Admin payment router is mounted at /api/admin/payments
     PAYMENTS: {
       GET_ALL: "/api/admin/payments",
       GET_ONE: (paymentId: string) => `/api/admin/payments/${paymentId}`,
-      // Note: /pending route conflicts with /:paymentId — use GET_ALL with status=PENDING filter instead
-      VERIFY: (paymentId: string) => `/api/admin/payments/${paymentId}/verify`, // PUT
+      VERIFY: (paymentId: string) => `/api/admin/payments/${paymentId}/verify`,
     },
   },
 
@@ -109,6 +106,7 @@ export const API = {
       GET_BY_STORE_AND_SUBCATEGORY: (storeId: string, subcategoryId: string) =>
         `/api/products/store/${storeId}/subcategory/${subcategoryId}`,
     },
+
     RATINGS: {
       GET_BY_PRODUCT: (productId: string) =>
         `/api/user/ratings/product/${productId}`,
@@ -118,11 +116,11 @@ export const API = {
     },
 
     NOTIFICATIONS: {
-      GET_ALL: "/api/user/notifications",
-      GET_UNREAD_COUNT: "/api/user/notifications/unread/count",
-      MARK_READ: (id: string) => `/api/user/notifications/${id}/read`,
-      MARK_ALL_READ: "/api/user/notifications/mark-all/read",
-      DELETE: (id: string) => `/api/user/notifications/${id}`,
+      GET_ALL: "/api/user/notification",
+      GET_UNREAD_COUNT: "/api/user/notification/unread/count",
+      MARK_READ: (id: string) => `/api/user/notification/${id}/read`,
+      MARK_ALL_READ: "/api/user/notification/mark-all/read",
+      DELETE: (id: string) => `/api/user/notification/${id}`,
     },
 
     SUPPORT: {
@@ -144,13 +142,12 @@ export const API = {
       },
     },
 
-    // Cart
     CART: {
       GET: "/api/user/cart",
       ADD: "/api/user/cart",
       UPDATE: (cartItemId: string) => `/api/user/cart/${cartItemId}`,
       REMOVE: (cartItemId: string) => `/api/user/cart/${cartItemId}`,
-      CLEAR: "/api/user/cart", // DELETE / with no body = clearCart
+      CLEAR: "/api/user/cart",
     },
   },
 };
