@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { getOrderById, cancelOrder, getOrderPayment } from "@/lib/api/order";
+import { handleGetStoreById } from "@/lib/actions/public-action";
 import { Order, Payment, Product, resolveImg } from "@/components/ProductCard";
 import PaymentReceiptDialog from "@/components/PaymentReceiptDialog";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ type IStore = {
   location: string;
   pickupInstructions: string;
   storeImage?: string;
+  paymentQRCode?: string;
 };
 
 const ORDER_STATUS: Record<
@@ -149,6 +151,9 @@ export default function OrderDetailPage() {
 
   const [order, setOrder] = useState<Order | null>(null);
   const [payment, setPayment] = useState<Payment | null>(null);
+  const [storeData, setStoreData] = useState<{ paymentQRCode?: string } | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
@@ -171,6 +176,11 @@ export default function OrderDetailPage() {
     }
   };
 
+  const fetchStore = async (storeId: string) => {
+    const res = await handleGetStoreById(storeId);
+    setStoreData(res.success ? res.data : null);
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       const t = setTimeout(() => {
@@ -184,6 +194,13 @@ export default function OrderDetailPage() {
       setLoading(false);
     })();
   }, [isAuthenticated, orderId]);
+
+  useEffect(() => {
+    if (!order) return;
+    const storeId =
+      typeof order.storeId === "object" ? order.storeId._id : order.storeId;
+    if (storeId) fetchStore(storeId);
+  }, [order?._id]);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -551,6 +568,7 @@ export default function OrderDetailPage() {
         onOpenChange={setReceiptOpen}
         orderId={orderId}
         totalAmount={order.totalAmount}
+        storeQRCode={storeData?.paymentQRCode ?? store?.paymentQRCode}
         onSuccess={async () => {
           await Promise.all([fetchOrder(), fetchPayment()]);
         }}

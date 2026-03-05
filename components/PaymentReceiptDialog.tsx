@@ -16,12 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Upload, ImageOff, CheckCircle2, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { resolveImg } from "@/components/ProductCard";
 
 interface PaymentReceiptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orderId: string;
   totalAmount: number;
+  storeQRCode?: string;
   onSuccess: () => void;
 }
 
@@ -30,6 +32,7 @@ export default function PaymentReceiptDialog({
   onOpenChange,
   orderId,
   totalAmount,
+  storeQRCode,
   onSuccess,
 }: PaymentReceiptDialogProps) {
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -88,7 +91,7 @@ export default function PaymentReceiptDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent className="sm:max-w-lg rounded-2xl">
         <DialogHeader>
           <DialogTitle>Submit Payment Receipt</DialogTitle>
           <DialogDescription>
@@ -112,6 +115,24 @@ export default function PaymentReceiptDialog({
           </div>
         ) : (
           <div className="flex flex-col gap-4 pt-2">
+            {/* Store QR Code */}
+            {storeQRCode && (
+              <div className="flex flex-col items-center gap-2 p-4 rounded-xl border border-amber-200 bg-amber-50">
+                <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">
+                  Scan to Pay
+                </p>
+                <img
+                  src={resolveImg(storeQRCode) ?? ""}
+                  alt="Payment QR Code"
+                  className="w-40 h-40 object-contain rounded-lg border border-amber-100 bg-white p-1"
+                />
+                <p className="text-xs text-amber-700 text-center">
+                  Scan this QR code with your payment app, then upload your
+                  receipt below.
+                </p>
+              </div>
+            )}
+
             {/* Receipt image upload */}
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium">

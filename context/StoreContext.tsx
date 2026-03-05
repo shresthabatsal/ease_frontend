@@ -19,6 +19,7 @@ export interface Store {
   };
   pickupInstructions: string;
   storeImage?: string;
+  paymentQRCode?: string;
 }
 
 interface StoreContextProps {

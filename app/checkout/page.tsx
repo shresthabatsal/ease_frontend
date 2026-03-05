@@ -8,6 +8,7 @@ import { useStore } from "@/context/StoreContext";
 import { useCart } from "@/context/CartContext";
 import { createOrder, buyNow } from "@/lib/api/order";
 import { getProductById } from "@/lib/api/public";
+import { handleGetStoreById } from "@/lib/actions/public-action";
 import PaymentReceiptDialog from "@/components/PaymentReceiptDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,9 +91,21 @@ function CheckoutInner() {
   const [placedOrderId, setPlacedOrderId] = useState<string | null>(null);
   const [placedTotal, setPlacedTotal] = useState(0);
   const [receiptOpen, setReceiptOpen] = useState(false);
+  const [storeQRCode, setStoreQRCode] = useState<string | undefined>(undefined);
 
   const storeId = mode === "buynow" ? buyNowStoreId : selectedStore?._id ?? "";
   const storeName = selectedStore?.storeName ?? "";
+
+  useEffect(() => {
+    if (!storeId) return;
+    if (mode === "cart" && selectedStore?._id === storeId) {
+      setStoreQRCode(selectedStore?.paymentQRCode);
+      return;
+    }
+    handleGetStoreById(storeId)
+      .then((res) => setStoreQRCode(res.data?.paymentQRCode))
+      .catch(() => setStoreQRCode(undefined));
+  }, [storeId]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -370,7 +383,7 @@ function CheckoutInner() {
           </div>
         </div>
 
-        {/* Order summary */}
+        {/* ── Right: order summary ── */}
         <div className="flex flex-col gap-4 p-4 rounded-2xl border border-slate-100 bg-white sticky top-24">
           <div className="flex items-center gap-2">
             <ShoppingBag size={15} className="text-amber-500" />
@@ -455,6 +468,7 @@ function CheckoutInner() {
           onOpenChange={setReceiptOpen}
           orderId={placedOrderId}
           totalAmount={placedTotal}
+          storeQRCode={storeQRCode}
           onSuccess={() => router.push("/orders")}
         />
       )}
