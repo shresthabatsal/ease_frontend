@@ -12,33 +12,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { handleGetAllCategories, handleGetAllStores, handleGetSubcategoriesByCategory } from "@/lib/actions/admin/product-action";
+import { ImageIcon, X } from "lucide-react";
+import { toast } from "sonner";
+import {
+  handleGetAllCategories,
+  handleGetAllStores,
+  handleGetSubcategoriesByCategory,
+} from "@/lib/actions/admin/product-action";
 
-// Backend image URL prefix
 const IMAGE_BASE_URL = "http://localhost:5050";
-
-// Placeholder when no image or image fails
 const PLACEHOLDER_IMAGE = "/placeholder-product.png";
 
-// Types matching backend response structure
 export interface StoreData {
   _id: string;
   storeName: string;
   location: string;
   pickupInstructions: string;
 }
-
 export interface CategoryData {
   _id: string;
   name: string;
 }
-
 export interface SubcategoryData {
   _id: string;
   name: string;
   categoryId: string;
 }
-
 export interface ProductData {
   _id: string;
   name: string;
@@ -52,7 +51,6 @@ export interface ProductData {
   createdAt: string;
   updatedAt: string;
 }
-
 export interface PaginationData {
   total: number;
   page: number;
@@ -73,14 +71,17 @@ export function ProductForm({
   isLoading,
   submitLabel = "Save",
 }: ProductFormProps) {
-  const [preview, setPreview] = useState<string | null>(
-    initialData?.productImage
-      ? `${IMAGE_BASE_URL}${initialData.productImage}`
-      : null
-  );
+  const isEditing = !!initialData?._id;
+
+  // Existing image from server (edit mode only)
+  const existingImageUrl = initialData?.productImage
+    ? `${IMAGE_BASE_URL}${initialData.productImage}`
+    : null;
+
+  const [preview, setPreview] = useState<string | null>(existingImageUrl);
+  const [newFile, setNewFile] = useState<File | null>(null); // tracks whether user picked a new file
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Dropdown data
   const [stores, setStores] = useState<StoreData[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [filteredSubcategories, setFilteredSubcategories] = useState<
@@ -89,42 +90,33 @@ export function ProductForm({
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(true);
   const [isLoadingSubcategories, setIsLoadingSubcategories] = useState(false);
 
-  // Selected values
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
-  const [selectedSubcategoryId, setSelectedSubcategoryId] =
-    useState<string>("");
-  const [selectedStoreId, setSelectedStoreId] = useState<string>("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedSubcategoryId, setSelectedSubcategoryId] = useState("");
+  const [selectedStoreId, setSelectedStoreId] = useState("");
   const [isInitializing, setIsInitializing] = useState(false);
 
-  // Load dropdown data on mount (stores and categories only)
   useEffect(() => {
-    async function loadDropdowns() {
+    (async () => {
       setIsLoadingDropdowns(true);
       const [storesRes, categoriesRes] = await Promise.all([
         handleGetAllStores(),
         handleGetAllCategories(),
       ]);
-
       if (storesRes.success) setStores(storesRes.data || []);
       if (categoriesRes.success) setCategories(categoriesRes.data || []);
-
       setIsLoadingDropdowns(false);
-    }
-    loadDropdowns();
+    })();
   }, []);
 
-  // Initialize selections from initialData AFTER dropdowns load
   useEffect(() => {
     if (initialData && !isLoadingDropdowns) {
       setIsInitializing(true);
-
       const catId =
         typeof initialData.categoryId === "object" && initialData.categoryId
           ? initialData.categoryId._id
           : typeof initialData.categoryId === "string"
           ? initialData.categoryId
           : "";
-
       const subId =
         typeof initialData.subcategoryId === "object" &&
         initialData.subcategoryId
@@ -132,60 +124,80 @@ export function ProductForm({
           : typeof initialData.subcategoryId === "string"
           ? initialData.subcategoryId
           : "";
-
       const stId =
         typeof initialData.storeId === "object" && initialData.storeId
           ? initialData.storeId._id
           : typeof initialData.storeId === "string"
           ? initialData.storeId
           : "";
-
       setSelectedCategoryId(catId);
       setSelectedSubcategoryId(subId);
       setSelectedStoreId(stId);
-
-      // Will trigger subcategory load via the next useEffect
     }
   }, [initialData, isLoadingDropdowns]);
 
-  // Fetch subcategories when category changes
   useEffect(() => {
-    async function loadSubcategories() {
-      if (selectedCategoryId) {
-        setIsLoadingSubcategories(true);
-
-        const result = await handleGetSubcategoriesByCategory(
-          selectedCategoryId
-        );
-
-        if (result.success) {
-          setFilteredSubcategories(result.data || []);
-        }
-
-        setIsLoadingSubcategories(false);
-        setIsInitializing(false);
-      } else {
-        setFilteredSubcategories([]);
-        if (!isInitializing) {
-          setSelectedSubcategoryId("");
-        }
-      }
+    if (!selectedCategoryId) {
+      setFilteredSubcategories([]);
+      if (!isInitializing) setSelectedSubcategoryId("");
+      return;
     }
-
-    loadSubcategories();
-  }, [selectedCategoryId, isInitializing]);
+    (async () => {
+      setIsLoadingSubcategories(true);
+      const result = await handleGetSubcategoriesByCategory(selectedCategoryId);
+      if (result.success) setFilteredSubcategories(result.data || []);
+      setIsLoadingSubcategories(false);
+      setIsInitializing(false);
+    })();
+  }, [selectedCategoryId]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) setPreview(URL.createObjectURL(file));
+    if (!file) return;
+    setNewFile(file);
+    setPreview(URL.createObjectURL(file));
+  }
+
+  function handleRemoveImage() {
+    setNewFile(null);
+    setPreview(null);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!isEditing && !newFile) {
+      toast.error("Please select a product image");
+      fileRef.current?.focus();
+      return;
+    }
+
+    // Validate required dropdowns
+    if (!selectedCategoryId) {
+      toast.error("Please select a category");
+      return;
+    }
+    if (!selectedSubcategoryId) {
+      toast.error("Please select a subcategory");
+      return;
+    }
+    if (!selectedStoreId) {
+      toast.error("Please select a store");
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     formData.set("categoryId", selectedCategoryId);
     formData.set("subcategoryId", selectedSubcategoryId);
     formData.set("storeId", selectedStoreId);
+
+    if (newFile) {
+      formData.set("productImage", newFile);
+    } else {
+      formData.delete("productImage");
+    }
+
     await onSubmit(formData);
   }
 
@@ -243,15 +255,15 @@ export function ProductForm({
         />
       </div>
 
-      {/* Dropdowns - Fixed layout to prevent overlap */}
+      {/* Dropdowns */}
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <Label>Category *</Label>
+          <Label>
+            Category <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={selectedCategoryId}
-            onValueChange={(value) => {
-              setSelectedCategoryId(value);
-            }}
+            onValueChange={setSelectedCategoryId}
             disabled={isLoadingDropdowns}
           >
             <SelectTrigger>
@@ -268,7 +280,9 @@ export function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Subcategory *</Label>
+          <Label>
+            Subcategory <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={selectedSubcategoryId}
             onValueChange={setSelectedSubcategoryId}
@@ -310,7 +324,9 @@ export function ProductForm({
         </div>
 
         <div className="space-y-1.5">
-          <Label>Store *</Label>
+          <Label>
+            Store <span className="text-destructive">*</span>
+          </Label>
           <Select
             value={selectedStoreId}
             onValueChange={setSelectedStoreId}
@@ -330,19 +346,45 @@ export function ProductForm({
         </div>
       </div>
 
-      {/* Image */}
+      {/* Image upload */}
       <div className="space-y-1.5">
-        <Label htmlFor="productImage">Product Image</Label>
-        {preview && (
-          <div className="relative w-full h-36 rounded-md overflow-hidden border mb-2">
+        <Label htmlFor="productImage">
+          Product Image{" "}
+          {!isEditing && <span className="text-destructive">*</span>}
+          {isEditing && (
+            <span className="text-xs font-normal text-muted-foreground ml-1">
+              (leave empty to keep current)
+            </span>
+          )}
+        </Label>
+
+        {preview ? (
+          <div className="relative w-full h-36 rounded-md overflow-hidden border group">
             <img
               src={preview}
               alt="Preview"
               className="w-full h-full object-cover"
               onError={() => setPreview(PLACEHOLDER_IMAGE)}
             />
+            <button
+              type="button"
+              onClick={handleRemoveImage}
+              className="absolute top-2 right-2 h-6 w-6 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <X size={12} />
+            </button>
           </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="w-full h-24 rounded-md border-2 border-dashed border-slate-200 hover:border-amber-300 hover:bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-slate-400 hover:text-amber-500 transition-colors"
+          >
+            <ImageIcon size={20} />
+            <span className="text-xs font-medium">Click to upload image</span>
+          </button>
         )}
+
         <Input
           ref={fileRef}
           id="productImage"
@@ -350,8 +392,18 @@ export function ProductForm({
           type="file"
           accept="image/*"
           onChange={handleFileChange}
-          className="cursor-pointer"
+          className="hidden"
         />
+
+        {preview && (
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            className="text-xs text-muted-foreground hover:text-amber-600 underline underline-offset-2"
+          >
+            Change image
+          </button>
+        )}
       </div>
 
       <div className="flex justify-end pt-2">
