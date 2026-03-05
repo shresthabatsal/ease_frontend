@@ -42,9 +42,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const socketRef = useRef<any>(null);
+  const isFetchingRef = useRef(false);
+
+  const isAuthRef = useRef(isAuthenticated);
+  isAuthRef.current = isAuthenticated;
 
   const refetch = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthRef.current) return;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     try {
       const [notes, count] = await Promise.all([
         getNotifications(),
@@ -53,39 +59,59 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications(notes);
       setUnreadCount(count);
     } catch {
-      // silent — never break the UI
+      // silent
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [isAuthenticated]);
+  }, []);
 
-  // Initial load + polling
+  // Polling
   useEffect(() => {
     if (!isAuthenticated) {
       setNotifications([]);
       setUnreadCount(0);
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
       return;
     }
+
+    // Clear any existing interval before creating a new one
+    // prevents StrictMode double-mount creating two intervals
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+
     setLoading(true);
     refetch().finally(() => setLoading(false));
     pollRef.current = setInterval(refetch, POLL_MS);
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
     };
   }, [isAuthenticated, refetch]);
 
-  // WebSocket — real-time push
+  // WebSocket
   useEffect(() => {
     if (!isAuthenticated || !user?._id) return;
+
+    let cancelled = false;
 
     const wsUrl =
       process.env.NEXT_PUBLIC_WS_URL ??
       process.env.NEXT_PUBLIC_API_BASE_URL ??
-      "http://localhost:5000";
-
-    let socket: any;
+      "http://localhost:500";
 
     import("socket.io-client")
       .then(({ io }) => {
-        socket = io(wsUrl, {
+        if (cancelled) return;
+
+        const socket = io(wsUrl, {
           query: { userId: user._id },
           transports: ["websocket", "polling"],
           reconnection: true,
@@ -109,12 +135,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           setUnreadCount((c) => c + 1);
         });
       })
-      .catch(() => {
-        /* socket.io-client not installed — polling only */
-      });
+      .catch(() => {});
 
     return () => {
-      socket?.disconnect();
+      cancelled = true;
+      socketRef.current?.disconnect();
       socketRef.current = null;
     };
   }, [isAuthenticated, user?._id]);
@@ -133,15 +158,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setUnreadCount(0);
   }, []);
 
-  const remove = useCallback(
-    async (id: string) => {
-      const note = notifications.find((n) => n._id === id);
-      await apiDeleteNotification(id);
-      setNotifications((prev) => prev.filter((n) => n._id !== id));
+  const remove = useCallback(async (id: string) => {
+    await apiDeleteNotification(id);
+    setNotifications((prev) => {
+      const note = prev.find((n) => n._id === id);
       if (note && !note.isRead) setUnreadCount((c) => Math.max(0, c - 1));
-    },
-    [notifications]
-  );
+      return prev.filter((n) => n._id !== id);
+    });
+  }, []);
 
   return (
     <NotificationContext.Provider

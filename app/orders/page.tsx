@@ -93,6 +93,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Wait one tick for AuthContext to hydrate before deciding to redirect
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -151,7 +152,7 @@ export default function OrdersPage() {
         )}
       </div>
 
-      {/* Content */}
+      {/* ── Content ── */}
       {loading ? (
         <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -170,11 +171,18 @@ export default function OrdersPage() {
         <div className="flex flex-col gap-3">
           {orders.map((order) => {
             const storeName =
-              typeof order.storeId === "object"
+              order.storeId && typeof order.storeId === "object"
                 ? (order.storeId as Store).storeName
-                : "Store";
-            const statusCfg = ORDER_STATUS_CONFIG[order.status];
-            const paymentCfg = PAYMENT_STATUS_CONFIG[order.paymentStatus];
+                : "Deleted Store";
+            const statusCfg = ORDER_STATUS_CONFIG[order.status] ?? {
+              label: order.status,
+              color: "bg-slate-50 text-slate-600 border-slate-200",
+              icon: <Clock size={11} />,
+            };
+            const paymentCfg = PAYMENT_STATUS_CONFIG[order.paymentStatus] ?? {
+              label: order.paymentStatus,
+              color: "bg-slate-50 text-slate-600 border-slate-200",
+            };
             const itemCount = order.items.length;
 
             return (

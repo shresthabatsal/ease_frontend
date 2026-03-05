@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
-import {
-  getOrderById,
-  cancelOrder,
-  getOrderPayment,
-  submitPaymentReceipt,
-} from "@/lib/api/order";
+import { getOrderById, cancelOrder, getOrderPayment } from "@/lib/api/order";
 import { Order, Payment, Product, resolveImg } from "@/components/ProductCard";
 import PaymentReceiptDialog from "@/components/PaymentReceiptDialog";
 import { Button } from "@/components/ui/button";
@@ -44,10 +39,10 @@ import {
   CheckCircle2,
   XCircle,
   Upload,
-  X,
   Info,
   Store,
   Receipt,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +54,6 @@ type IStore = {
   storeImage?: string;
 };
 
-// Status configs
 const ORDER_STATUS: Record<
   Order["status"],
   { label: string; color: string; icon: React.ReactNode }
@@ -109,6 +103,16 @@ const PAYMENT_STATUS: Record<
   },
 };
 
+const FALLBACK_ORDER_STATUS = {
+  label: "Unknown",
+  color: "bg-slate-50 text-slate-600 border-slate-200",
+  icon: <Clock size={12} />,
+};
+const FALLBACK_PAYMENT_STATUS = {
+  label: "Unknown",
+  color: "bg-slate-50 text-slate-600 border-slate-200",
+};
+
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-US", {
     year: "numeric",
@@ -141,7 +145,6 @@ export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-
   const orderId = params.orderId as string;
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -170,7 +173,6 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      // Delay
       const t = setTimeout(() => {
         if (!isAuthenticated) router.replace("/login");
       }, 100);
@@ -190,9 +192,7 @@ export default function OrderDetailPage() {
       if (res.success !== false) {
         toast.success("Order cancelled successfully");
         await fetchOrder();
-      } else {
-        toast.error(res.message || "Failed to cancel order");
-      }
+      } else toast.error(res.message || "Failed to cancel order");
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Failed to cancel order");
     } finally {
@@ -226,11 +226,14 @@ export default function OrderDetailPage() {
   }
 
   const store =
-    typeof order.storeId === "object" ? (order.storeId as IStore) : null;
-  const storeName = store?.storeName ?? "Store";
+    order.storeId && typeof order.storeId === "object"
+      ? (order.storeId as IStore)
+      : null;
+  const storeName = store?.storeName ?? "Deleted Store";
   const pickupInstructions = store?.pickupInstructions ?? null;
-  const orderStatus = ORDER_STATUS[order.status];
-  const paymentStatus = PAYMENT_STATUS[order.paymentStatus];
+  const orderStatus = ORDER_STATUS[order.status] ?? FALLBACK_ORDER_STATUS;
+  const paymentStatus =
+    PAYMENT_STATUS[order.paymentStatus] ?? FALLBACK_PAYMENT_STATUS;
 
   const canCancel = !["COLLECTED", "CANCELLED"].includes(order.status);
   const needsPayment =
@@ -238,9 +241,16 @@ export default function OrderDetailPage() {
   const paymentFailed =
     order.paymentStatus === "FAILED" && order.status !== "CANCELLED";
 
+  // OTP is available once payment is verified (CONFIRMED / READY_FOR_COLLECTION / COLLECTED)
+  const otpVisible = [
+    "CONFIRMED",
+    "READY_FOR_COLLECTION",
+    "COLLECTED",
+  ].includes(order.status);
+
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-5">
-      {/* ── Breadcrumb ── */}
+      {/* Breadcrumb */}
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -292,7 +302,17 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Pickup instructions card */}
+      {/* Deleted store warning */}
+      {!store && (
+        <div className="flex gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+          <Info size={15} className="text-slate-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-slate-500">
+            The store associated with this order no longer exists.
+          </p>
+        </div>
+      )}
+
+      {/* Pickup instructions */}
       {pickupInstructions && (
         <div className="flex gap-3 p-4 rounded-2xl bg-amber-50 border border-amber-200">
           <div className="h-8 w-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -309,7 +329,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* Payment action banners */}
+      {/* Payment banners */}
       {needsPayment && !payment && (
         <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-200">
           <div className="flex items-center gap-2.5">
@@ -362,9 +382,7 @@ export default function OrderDetailPage() {
           />
           <p className="text-xs text-slate-600">
             Receipt submitted
-            {payment.paymentMethod
-              ? ` via ${payment.paymentMethod}`
-              : ""} ·{" "}
+            {payment.paymentMethod ? ` via ${payment.paymentMethod}` : ""} ·{" "}
             <span
               className={cn(
                 "font-semibold",
@@ -402,16 +420,18 @@ export default function OrderDetailPage() {
           value={order.pickupTime}
         />
         <InfoRow
-          icon={<Hash size={14} />}
-          label="Pickup Code"
+          icon={<KeyRound size={14} />}
+          label="OTP"
           value={
-            <span className="font-mono font-bold tracking-widest text-amber-600">
-              {order.status === "CONFIRMED" ||
-              order.status === "READY_FOR_COLLECTION" ||
-              order.status === "COLLECTED"
-                ? order.pickupCode
-                : "Available after payment verification"}
-            </span>
+            otpVisible ? (
+              <span className="font-mono font-bold tracking-[0.3em] text-base text-amber-600">
+                {order.pickupCode}
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground italic">
+                Available after payment verification
+              </span>
+            )
           }
         />
         {order.notes && (
@@ -423,6 +443,24 @@ export default function OrderDetailPage() {
         )}
       </div>
 
+      {/* OTP highlight card */}
+      {otpVisible && order.pickupCode && (
+        <div className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-200">
+          <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <KeyRound size={18} className="text-amber-600" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-amber-700">Your OTP</p>
+            <p className="text-2xl font-bold font-mono tracking-[0.35em] text-amber-800">
+              {order.pickupCode}
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Show this to the store when collecting your order
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Order items */}
       <div className="flex flex-col gap-3 p-4 rounded-2xl border border-slate-100 bg-white">
         <h2 className="text-sm font-bold text-slate-800">Items Ordered</h2>
@@ -433,8 +471,7 @@ export default function OrderDetailPage() {
                 ? (item.productId as Product)
                 : null;
             const imgSrc = product ? resolveImg(product.productImage) : null;
-            const name = product?.name ?? "Product";
-
+            const name = product?.name ?? "Deleted Product";
             return (
               <div key={idx} className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 flex-shrink-0">
@@ -465,8 +502,6 @@ export default function OrderDetailPage() {
             );
           })}
         </div>
-
-        {/* Total */}
         <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-600">Total</span>
           <span className="text-lg font-bold text-slate-900">
@@ -475,7 +510,7 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Cancel action */}
       {canCancel && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -511,7 +546,6 @@ export default function OrderDetailPage() {
         </AlertDialog>
       )}
 
-      {/* Payment receipt dialog */}
       <PaymentReceiptDialog
         open={receiptOpen}
         onOpenChange={setReceiptOpen}
