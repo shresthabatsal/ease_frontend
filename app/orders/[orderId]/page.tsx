@@ -442,7 +442,7 @@ export default function OrderDetailPage() {
           value={
             otpVisible ? (
               <span className="font-mono font-bold tracking-[0.3em] text-base text-amber-600">
-                {order.pickupCode}
+                {order.otp}
               </span>
             ) : (
               <span className="text-xs text-muted-foreground italic">
@@ -461,7 +461,7 @@ export default function OrderDetailPage() {
       </div>
 
       {/* OTP highlight card */}
-      {otpVisible && order.pickupCode && (
+      {otpVisible && order.otp && (
         <div className="flex items-center gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-200">
           <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0">
             <KeyRound size={18} className="text-amber-600" />
@@ -469,7 +469,7 @@ export default function OrderDetailPage() {
           <div>
             <p className="text-xs font-semibold text-amber-700">Your OTP</p>
             <p className="text-2xl font-bold font-mono tracking-[0.35em] text-amber-800">
-              {order.pickupCode}
+              {order.otp}
             </p>
             <p className="text-xs text-amber-600 mt-0.5">
               Show this to the store when collecting your order
