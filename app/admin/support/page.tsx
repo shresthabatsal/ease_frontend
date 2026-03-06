@@ -3,16 +3,23 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  getOpenTickets,
-  getAdminMyTickets,
-  assignTicket,
+  type ITicket,
+  type IMessage,
+  type TicketStatus,
   updateTicketStatus,
   getMessages,
   sendMessage,
-  ITicket,
-  IMessage,
-  TicketStatus,
+  getOpenTickets,
+  getAdminMyTickets,
 } from "@/lib/api/support";
+import {
+  handleGetOpenTickets,
+  handleGetAdminMyTickets,
+  handleAssignTicket,
+  handleUpdateTicketStatus,
+  handleGetMessages,
+  handleSendMessage,
+} from "@/lib/actions/support-action";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +60,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Same helpers as user page ─────────────────────────────────────────────────
 const STATUS_CFG = {
   OPEN: { label: "Open", color: "bg-blue-50 text-blue-700 border-blue-200" },
   IN_PROGRESS: {
@@ -176,7 +182,9 @@ function AdminChatView({
   const handleAssign = async () => {
     setAssigning(true);
     try {
-      const updated = await assignTicket(ticket._id);
+      const assignRes = await handleAssignTicket(ticket._id);
+      if (!assignRes.success) throw new Error(assignRes.message);
+      const updated = assignRes.data;
       toast.success("Ticket assigned to you");
       onTicketUpdate(updated);
     } catch (e: any) {
@@ -224,8 +232,14 @@ function AdminChatView({
   const isAssigned = !!ticket.adminId;
   const isClosed = ticket.status === "CLOSED";
   const ticketUser = typeof ticket.userId === "object" ? ticket.userId : null;
-  const s = STATUS_CFG[ticket.status];
-  const p = PRIORITY_CFG[ticket.priority];
+  const s = STATUS_CFG[ticket.status] ?? {
+    label: ticket.status,
+    color: "bg-slate-100 text-slate-500 border-slate-200",
+  };
+  const p = PRIORITY_CFG[ticket.priority] ?? {
+    label: ticket.priority,
+    dot: "bg-slate-400",
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -464,7 +478,7 @@ function AdminChatView({
   );
 }
 
-// Ticket row
+// ── Ticket row ────────────────────────────────────────────────────────────────
 function AdminTicketRow({
   ticket,
   active,
@@ -474,8 +488,14 @@ function AdminTicketRow({
   active: boolean;
   onClick: () => void;
 }) {
-  const s = STATUS_CFG[ticket.status];
-  const p = PRIORITY_CFG[ticket.priority];
+  const s = STATUS_CFG[ticket.status] ?? {
+    label: ticket.status,
+    color: "bg-slate-100 text-slate-500 border-slate-200",
+  };
+  const p = PRIORITY_CFG[ticket.priority] ?? {
+    label: ticket.priority,
+    dot: "bg-slate-400",
+  };
   const user = typeof ticket.userId === "object" ? ticket.userId : null;
   return (
     <button
